@@ -13,6 +13,11 @@ Written with help from Claude (Anthropic) as a coding assistant; reviewed by the
 - That mean includes cloudy and snow-covered pixels, so each month is checked against the pixel-reliability statistics: a month is used only if at least 80% of the box's pixels are good or marginal quality (reliability 0 or 1). Other months are set to missing and never corrected.
 - Yearly values then follow the same rules as satellite haze: all 12 months if there are at least 10 such years, otherwise only the calendar months observed in at least 5 of every 6 years (Moscow April–October, Nuuk July–September, Manaus April–October and December). Singapore is cloudy in too many months to test.
 - Result (14 November 2026): none of the 7 testable cities shows a trend that survives the correction for testing eight places. London, Sydney and New Delhi have p < 0.05 on their own but q ≈ 0.10.
+- Sensitivity to the 80% threshold: re-running with 60%, 70%, 90% and 95% leaves every city "not proven" (smallest q 0.07 at 60%). Singapore becomes testable only at 70% or below, which lets in months with up to 30% cloud, so we keep it out. The sign of the Manaus slope changes with the threshold, so its direction should not be read at all.
+- Pixel counts per month are stable (each box keeps the same land pixels; Singapore, Nuuk and Sydney boxes are part sea, which AppEEARS leaves out).
+- Detailed VI Quality bits (`scripts/check_ndvi_quality.py`, land pixels only): in the months we keep, the median share of pixels next to cloud is 0–4% in Cairo, London, Moscow, New Delhi and Sydney, 13% in Nuuk and 22% in Manaus; mixed cloud, high aerosol and shadow are rare. Months where more than 20% of pixels carry one of these flags: Cairo 0, Sydney 7, Nuuk 10, Moscow 31, London 52, New Delhi 53, Manaus 150.
+- Stricter check: dropping those months as well leaves every city "not proven" and every direction unchanged except Manaus (already flagged as unreadable). It also removes many years (London falls from 25 to 15), so the page keeps the 80% pixel-reliability rule.
+- Not done: there is no second independent greenness dataset to cross-check against.
 
 ## Trend test (`src/stats.js`)
 - **Mann-Kendall test** (two-sided, α = 0.05) with the standard correction for tied values.

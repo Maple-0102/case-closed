@@ -25,7 +25,7 @@ const seasonLabel = m => {
 
 // Fewer usable years than this gets an explicit "less stable" note.
 const FEW_YEARS = 20;
-const state = { data: null, results: {}, site: null, variable: 'T2M', caseId: null, guess: null, topic: null, ptype: null, cancel: null, tour: null, win: null, checks: {} };
+const state = { data: null, results: {}, site: null, variable: 'T2M', caseId: null, guess: null, topic: null, ptype: null, cancel: null, tour: null, tourDrag: [], win: null, checks: {} };
 const result = (site = state.site, vid = state.variable) => state.results[vid]?.[site];
 const verdictWord = (v, vd) => (vd === 'up' && v.goingUp ? v.goingUp() : vd === 'down' && v.goingDown ? v.goingDown() : t('Not sure yet', '还说不准'));
 
@@ -613,25 +613,33 @@ document.addEventListener('focusout', e => { if (e.target.closest('.term')) hide
 document.addEventListener('click', e => { const x = e.target.closest('.term'); if (x) showTip(x); else hideTip(); });
 
 // ---------- 30-second guided example (7 steps x 4.3 s) ----------
+// About 30 seconds: one mystery (New Delhi), then one trick to catch (Cairo haze + slider).
+// Drag the start year step by step so the viewer sees the stamp change.
+function tourDrag(to) {
+  const c = checkFor();
+  if (!c || c.skipped) return;
+  const starts = c.windows.map(w => w.start).filter(y => y <= to);
+  starts.forEach((y, k) => { state.tourDrag.push(setTimeout(() => { if (state.tour === null) return; state.win = y; updateStartYear(true); }, 250 + k * 220)); });
+}
 const TOUR = [
-  { el: 'step1', text: () => t('A detective starts with a question. Today’s case: is New Delhi warming or cooling?', '侦探从一个问题开始。今天的案子：新德里在变暖，还是在变冷？') },
-  { el: 'step2', text: () => t('Each dot is a city, coloured by its temperature trend from NASA’s MERRA-2 model.', '地图上每个点是一个城市，颜色是 NASA MERRA-2 模型算出的气温趋势。'), act: () => pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }) },
-  { el: 'step3', text: () => t('Every variable comes with a plain definition and says whether it comes from a satellite or a model.', '每个变量都有大白话解释，并标明来自卫星还是模型。') },
+  { el: 'step1', text: () => t('A detective starts with a question. Case 1: is New Delhi warming or cooling? We use NASA satellite and model data.', '侦探从一个问题开始。案子 1：新德里在变暖，还是在变冷？证据是 NASA 的卫星和模型数据。'), act: () => pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }) },
   { el: 'step4', text: () => t('Guess first! Most places are warming, so we guess “got warmer”… and replay 35 years.', '先猜！大多数地方在变暖，我们猜"变暖了"……然后回放 35 年。'), act: () => { state.guess = 'up'; renderAnswer(); } },
-  { el: 'step4', text: () => t('Twist: the model looks like cooling, but the city’s thermometer looks like warming, and neither is proven. We cannot even say which way it is heading.', '反转：模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。连往哪个方向变都说不准。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
-  { el: 'step5', text: () => t('So we follow the leads: sunlight, haze and soil moisture around the city.', '于是跟着线索查：城市周围的阳光、雾霾和土壤湿度。') },
-  { el: 'step5', text: () => t('Lead 1: less sunlight is reaching the ground — a significant drop. The case stays open.', '线索 1：照到地面的阳光在显著减少。案子还没结。'), act: () => document.querySelector('#clues .recs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
+  { el: 'step4', text: () => t('Twist: the model looks like cooling, the city’s thermometer looks like warming, and neither is proven. Case open.', '反转：模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。案子没结。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
+  { el: 'step5', text: () => t('A lead: less sunlight is reaching the ground here, a significant drop.', '一条线索：这里照到地面的阳光在显著减少。'), act: () => document.querySelector('#clues .recs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
+  { el: 'step4', text: () => t('Case 2: is Cairo’s air getting cleaner? Over all the years, the satellite says: not proven.', '案子 2：开罗的空气变干净了吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', guess: 'skip', scroll: false }); state.tourDrag.push(setTimeout(() => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350)); }, noScroll: true },
+  { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 5200 },
+  { el: 'robust', text: () => t('Gotcha! Picking the years that fit is how people get fooled. The verdict stays: not proven.', '抓到了！只挑符合说法的年份，就是被骗的套路。结论不变：证据不足。'), act: () => $('robust')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
 ];
-function stopTour() { clearTimeout(state.tour); state.tour = null; $('tourBar').hidden = true; document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
+function stopTour() { clearTimeout(state.tour); state.tourDrag.forEach(clearTimeout); state.tourDrag = []; state.tour = null; $('tourBar').hidden = true; document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
 function tourStep(i) {
   document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl'));
   if (i >= TOUR.length) { stopTour(); return; }
   const s = TOUR[i];
   s.act?.();
-  const el = $(s.el); el.classList.add('hl');
-  if (!s.noScroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const el = $(s.el); el?.classList.add('hl');
+  if (!s.noScroll) el?.scrollIntoView({ behavior: 'smooth', block: s.block ?? 'start' });
   $('tourText').textContent = s.text();
-  state.tour = setTimeout(() => tourStep(i + 1), 4300);
+  state.tour = setTimeout(() => tourStep(i + 1), s.ms ?? 4300);
 }
 $('openCase').addEventListener('click', () => $('step1').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('tourBtn').addEventListener('click', () => { stopTour(); $('tourBar').hidden = false; state.tour = -1; tourStep(0); });

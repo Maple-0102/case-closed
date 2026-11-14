@@ -96,7 +96,12 @@ export function animateCaseWall(svg) {
     p.style.strokeDasharray = `${len}`;
     p.style.strokeDashoffset = reduce ? '0' : `${len}`;
   });
-  requestAnimationFrame(() => svg.classList.add('cw-on'));
+  // Animation frames are paused in background tabs, so a timer makes sure the cards
+  // always appear even if the page was opened in the background.
+  const on = () => svg.classList.add('cw-on');
+  if (reduce || document.hidden) { on(); return; }
+  requestAnimationFrame(on);
+  setTimeout(on, 150);
 }
 
 export const HERO_SIZE = { W, H };
