@@ -15,6 +15,8 @@ const term = (key, text) => `<span class="term" tabindex="0" data-term="${key}">
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const seasonLabel = m => (m ? t(`${MON[m[0] - 1]}–${MON[m[m.length - 1] - 1]}`, `${m[0]}–${m[m.length - 1]} 月`) : '');
 
+// Fewer usable years than this gets an explicit "less stable" note.
+const FEW_YEARS = 20;
 const state = { data: null, results: {}, site: null, variable: 'T2M', caseId: null, guess: null, topic: null, ptype: null, cancel: null, tour: null };
 const result = (site = state.site, vid = state.variable) => state.results[vid]?.[site];
 const verdictWord = (v, vd) => ({ up: v.goingUp(), down: v.goingDown(), unsure: t('Not sure yet', '还说不准') })[vd];
@@ -148,7 +150,11 @@ function renderAnswer() {
     return;
   }
   const q = question(v), T = r.test;
-  const seasonNote = r.season ? `<p class="note">🛰️ ${t(`In some months here (dark winters or cloudy rainy seasons) the satellite cannot see the ground, so we compare only the ${seasonLabel(r.season)} average each year. Missing months are never filled in.`, `这里有些月份（冬季太暗或雨季云多）卫星看不到地面，所以只比较每年 ${seasonLabel(r.season)} 的平均。缺的月份不补值。`)}</p>` : '';
+  const span = T.lastYear - T.firstYear + 1;
+  const fewNote = T.n < FEW_YEARS ? ` ${t(`Only ${T.n} of the ${span} years from ${T.firstYear} to ${T.lastYear} have complete data, so this result is less stable than one built on a long, unbroken record.`, `${T.firstYear}–${T.lastYear} 年的 ${span} 年里只有 ${T.n} 年数据完整，所以这个结果不如长期连续记录那样稳定。`)}` : '';
+  const seasonNote = r.season
+    ? `<p class="note">🛰️ ${t(`In some months here (dark winters or cloudy rainy seasons) the satellite cannot see the ground, so we compare only the ${seasonLabel(r.season)} average each year. Missing months are never filled in.`, `这里有些月份（冬季太暗或雨季云多）卫星看不到地面，所以只比较每年 ${seasonLabel(r.season)} 的平均。缺的月份不补值。`)}${fewNote}</p>`
+    : fewNote ? `<p class="note">⚠️${fewNote}</p>` : '';
   if (!state.guess) {
     const opts = [['up', '↗', v.up()], ['down', '↘', v.down()], ['flat', '〰', t('No clear change', '看不出变化')]];
     box.innerHTML = `<div class="card answer guess"><p class="q">${esc(q.text)}</p><p class="guess-lead">${t('Make a guess first!', '先猜一猜！')}</p>
@@ -198,6 +204,22 @@ function compareRows(vid) {
     <span class="v">${sign(r.test.slope * 10, v.dp)}</span></div>`).join('') +
     `<p class="cap">${t(`Dot = change per decade (${v.unit}); bar = likely range; line = zero. Click a row to switch place.`, `点 = 每十年的变化（${v.unit}）；横条 = 很可能的范围；竖线 = 0。点一行可以切换地点。`)}</p>`;
 }
+// The MERRA-2 model has haze for every month, but its values run lower than what MODIS
+// measures in polluted places, so it is used to check the direction only.
+function modelHaze(sat) {
+  const m = state.results.AOD_MODEL?.[state.site];
+  if (!m?.test) return '';
+  const years = new Set(sat.rows.filter(x => x.complete).map(x => x.year));
+  const avg = rows => rows.reduce((s, x) => s + x.value, 0) / rows.length;
+  const satMean = avg(sat.rows.filter(x => x.complete));
+  const modelRows = m.rows.filter(x => x.complete && years.has(x.year));
+  if (!modelRows.length) return '';
+  const modelMean = avg(modelRows);
+  const dir = x => (x > 0 ? t('up', '上升') : t('down', '下降'));
+  const lower = modelMean < satMean * 0.85, higher = modelMean > satMean * 1.15;
+  const level = lower ? t('runs lower than', '明显低于') : higher ? t('runs higher than', '明显高于') : t('is close to', '接近');
+  return `<p>${t(`The MERRA-2 model also estimates haze, with no gaps (1991–2025). Over the same years its average here (${modelMean.toFixed(2)}) ${level} what the satellite measures (${satMean.toFixed(2)}), so we only compare the direction: the model looks <b>${dir(m.test.slope)}</b> since 1991.`, `MERRA-2 模型也会估算雾霾，而且没有缺测（1991–2025）。在相同年份里，它在这里的平均值（${modelMean.toFixed(2)}）${level}卫星实测（${satMean.toFixed(2)}），所以只比较方向：模型显示 1991 年以来<b>${dir(m.test.slope)}</b>。`)}</p>`;
+}
 function crossCheck() {
   const c = CHECKS[state.variable];
   if (!c) return '';
@@ -205,7 +227,7 @@ function crossCheck() {
   if (!a?.test || !b?.test) return '';
   const dir = r => (r.test.slope > 0 ? t('up', '上升') : t('down', '下降'));
   const agree = Math.sign(a.test.slope) === Math.sign(b.test.slope);
-  return `<p>${t(`Same question, different dataset — ${c.label()} (${b.test.firstYear}–${b.test.lastYear}${b.season ? ', ' + seasonLabel(b.season) : ''}) looks <b>${dir(b)}</b>; this answer looks <b>${dir(a)}</b>.`, `换一套数据问同一个问题：${c.label()}（${b.test.firstYear}–${b.test.lastYear}${b.season ? '，' + seasonLabel(b.season) : ''}）看起来<b>${dir(b)}</b>；本页答案看起来<b>${dir(a)}</b>。`)} ${agree ? t('They agree on the direction.', '两者方向一致。') : t('They disagree, so be extra careful.', '两者方向不一致，结论要更谨慎。')}</p>`;
+  return `${state.variable === 'AOD' ? modelHaze(a) : ''}<p>${t(`Same question, different dataset — ${c.label()} (${b.test.firstYear}–${b.test.lastYear}${b.season ? ', ' + seasonLabel(b.season) : ''}) looks <b>${dir(b)}</b>; this answer looks <b>${dir(a)}</b>.`, `换一套数据问同一个问题：${c.label()}（${b.test.firstYear}–${b.test.lastYear}${b.season ? '，' + seasonLabel(b.season) : ''}）看起来<b>${dir(b)}</b>；本页答案看起来<b>${dir(a)}</b>。`)} ${agree ? t('They agree on the direction.', '两者方向一致。') : t('They disagree, so be extra careful.', '两者方向不一致，结论要更谨慎。')}</p>`;
 }
 function renderClues() {
   const box = $('clues');
