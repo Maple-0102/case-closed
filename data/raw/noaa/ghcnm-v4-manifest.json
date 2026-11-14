@@ -1,0 +1,8 @@
+{
+ "source": "NOAA NCEI GHCN-Monthly v4.0.1 (20261112), TAVG, qcf (quality-controlled, homogeneity-adjusted)",
+ "archive": "https://www.ncei.noaa.gov/pub/data/ghcn/v4/ghcnm.tavg.latest.qcf.tar.gz",
+ "archiveSha256": "e2f70f23143d3b5ac3abd6d8aa6d9bb5a4d9ad51caf2440f2a225bc7ad0c5023",
+ "downloaded": "2026-11-14",
+ "note": "Only the lines for the 8 stations below were kept. Values are hundredths of a degree C; -9999 = missing.",
+ "licence": "U.S. Government work (NOAA), public domain"
+}

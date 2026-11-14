@@ -22,6 +22,10 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RAW_G = ROOT / 'data' / 'raw' / 'giovanni'
 RAW_P = ROOT / 'data' / 'raw' / 'power'
+RAW_N = ROOT / 'data' / 'raw' / 'noaa'
+# Station with the most complete 1991-2025 record inside each city's 1-degree box.
+STATIONS = {'singapore': 'SNM00048698', 'delhi': 'IN022021900', 'cairo': 'EGM00062378', 'london': 'UKM00003772',
+            'moscow': 'RSM00027612', 'nuuk': 'GL000004250', 'manaus': 'BRM00082331', 'sydney': 'ASN00066037'}
 OUT = ROOT / 'data' / 'processed' / 'series.json'
 
 # Our variable id -> where it comes from and how to convert to display units.
@@ -124,6 +128,27 @@ def main():
                 'start': cal[0], 'end': cal[-1], 'values': vals, 'missing': sum(v is None for v in vals),
                 'source': {'via': f"NASA POWER Monthly API {data['header']['api']['version']} (MERRA2 grid cell)", 'file': f'data/raw/power/{path.name}',
                            'sha256': hashlib.sha256(raw).hexdigest()},
+            }
+    # NOAA GHCN-Monthly v4 station records (quality-controlled, homogeneity-adjusted TAVG),
+    # one station inside each 1-degree box, used to check the model temperature.
+    raw_n = RAW_N / 'ghcnm-v4-qcf-stations.dat'
+    if raw_n.exists():
+        raw = raw_n.read_bytes()
+        names = {l[:11]: (l[38:68].strip(), float(l[12:20]), float(l[21:30])) for l in (RAW_N / 'ghcnm-v4-qcf-stations.inv').read_text().splitlines() if l.strip()}
+        lines = [l for l in raw.decode().splitlines() if l.strip()]
+        cal = list(months((1991, 1), (2025, 12)))
+        for site, sid in STATIONS.items():
+            by_year = {int(l[11:15]): l for l in lines if l.startswith(sid)}
+            vals = []
+            for m in cal:
+                line = by_year.get(int(m[:4]))
+                v = int(line[19 + 8 * (int(m[5:]) - 1):24 + 8 * (int(m[5:]) - 1)]) if line else -9999
+                vals.append(None if v == -9999 else round(v / 100, 2))
+            name, lat, lon = names[sid]
+            out['series'].setdefault(site, {})['T2M_STATION'] = {
+                'start': cal[0], 'end': cal[-1], 'values': vals, 'missing': sum(v is None for v in vals),
+                'source': {'via': 'NOAA NCEI GHCN-Monthly v4 (TAVG, qcf)', 'station': sid, 'stationName': name.replace('_', ' ').title(),
+                           'lat': lat, 'lon': lon, 'file': 'data/raw/noaa/ghcnm-v4-qcf-stations.dat', 'sha256': hashlib.sha256(raw).hexdigest()},
             }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, separators=(',', ':')))

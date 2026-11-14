@@ -26,3 +26,19 @@ Yearly mean air temperature (MERRA-2 T2M, Giovanni 1° box, 1991–2025), uncorr
 
 S, Var(S), z, p and the slope agree exactly. The interval differs by less than 0.0002 °C/yr because SciPy uses whole-number ranks and we interpolate.
 With the autocorrelation correction: Singapore p = 1.7e-4, New Delhi p = 0.036, London p = 1.4e-4.
+
+## Thermometer check (NOAA GHCN-Monthly v4)
+For each city we take the station with the most complete 1991–2025 record inside its 1° × 1° box (quality-controlled, homogeneity-adjusted monthly mean temperature) and run the same test. Compared over the same years, the model (MERRA-2 region average) and the station:
+
+| City | Station | Complete years | Station °C/decade | Model °C/decade (same years) | Same direction |
+|---|---|---|---|---|---|
+| Singapore | Changi | 28 | +0.26 | +0.24 | yes |
+| New Delhi | Safdarjung | 32 | +0.16 | −0.23 | **no** |
+| Cairo | Helwan | 10 | +0.36 | +0.10 | yes |
+| London | Heathrow | 34 | +0.40 | +0.38 | yes |
+| Moscow | Moscow | 35 | +0.59 | +0.52 | yes |
+| Nuuk | Nuuk | 35 | +0.35 | +0.27 | yes |
+| Manaus | Manaus | 21 | +0.31 | +0.19 | yes |
+| Sydney | Sydney Airport | 35 | +0.40 | +0.35 | yes |
+
+Seven of eight agree closely. In New Delhi the model shows cooling and the station shows (non-significant) warming; the page says so next to the answer.

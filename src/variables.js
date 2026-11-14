@@ -42,7 +42,7 @@ export const VARIABLES = [
 
 // Second datasets used only to cross-check a main variable (clue 3).
 export const CHECKS = {
-  T2M: { id: 'T2M_POWER', label: () => t('NASA POWER (one grid cell)', 'NASA POWER（单个格点）'), annual: 'mean' },
+  T2M: { id: 'T2M_STATION', label: () => t('the city’s weather station (NOAA GHCN-Monthly)', '城里的气象站（NOAA GHCN-Monthly）'), annual: 'mean', station: true },
   PRECIP: { id: 'IMERG', label: () => t('GPM satellite rain', 'GPM 卫星降水'), annual: 'total' },
   IMERG: { id: 'PRECIP', label: () => t('MERRA-2 model rain', 'MERRA-2 模型降水'), annual: 'total' },
   AOD: { id: 'AOD_AQUA', label: () => t('MODIS on the Aqua satellite', 'Aqua 卫星上的 MODIS'), annual: 'mean', seasonal: true },

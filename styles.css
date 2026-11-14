@@ -175,3 +175,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--accent); }
 }
 @media (prefers-reduced-motion: reduce) { .after { animation: none; } .chart .pt, .chart .tr, .chart .band { transition: none; } }
 @media (max-width: 600px) { .chart .ax { font-size: 22px; } .chart .counter { font-size: 46px; } .chart .pt { r: 6; } }
+.duel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 4px; }
+.part-a.up { color: var(--up); } .part-a.down { color: var(--down); }
+@media (max-width: 600px) { .duel { grid-template-columns: 1fr; } }

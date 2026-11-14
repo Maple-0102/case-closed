@@ -84,7 +84,7 @@ function renderVars() {
 // ---------- step 4: guess, replay, answer ----------
 function question(v) {
   const c = CASES.find(x => x.id === state.caseId && x.site === state.site && x.variable === state.variable);
-  return { text: c ? c.title() : t(`Is the ${v.short()} in ${shortSite(state.site)} changing?`, `${shortSite(state.site)}的${v.short()}在变化吗？`), expect: c?.expect };
+  return { text: c ? c.title() : t(`Is the ${v.short()} in ${shortSite(state.site)} changing?`, `${shortSite(state.site)}的${v.short()}在变化吗？`), expect: c?.expect, mystery: !!c?.mystery };
 }
 function bigAnswer(vd, expect, v) {
   if (vd === 'unsure') return t('Not sure yet', '还说不准');
@@ -140,6 +140,42 @@ function statsTable(r, v) {
     <table class="kv">${rows.map(([k, x]) => `<tr><th>${k}</th><td>${x}</td></tr>`).join('')}</table>
     <p class="cap">${t('The map colours and answers use the stricter q-value because several places are tested at once. Details: docs/method.md.', '因为同时检验了多个地点，地图颜色和结论都用更严格的 q 值。详见 docs/method.md。')}</p></details>`;
 }
+// The New Delhi case: the model and the city's thermometer disagree, and the page says so.
+function renderMystery(box, q, r, v) {
+  const s = state.results.T2M_STATION?.[state.site];
+  const src = state.data.series[state.site].T2M_STATION.source;
+  const T = r.test, ST = s.test;
+  const per = x => `${sign(x.slope * 10, 2)} °C ${t('per decade', '每十年')}`;
+  const sig = x => (x.p < 0.05 ? t('significant', '显著') : t('not significant on its own', '单独看不显著'));
+  const says = x => (x.slope > 0 ? t('Warming', '在变暖') : t('Cooling', '在降温'));
+  const guessed = { up: 'up', down: 'down', flat: 'flat' }[state.guess];
+  const mine = { up: v.up(), down: v.down(), flat: t('No clear change', '看不出变化') }[state.guess];
+  const dirOf = x => (x.slope > 0 ? 'up' : 'down');
+  const badge = state.guess === 'skip' ? '' : `<p class="badge ${guessed === dirOf(T) || guessed === dirOf(ST) ? 'ok' : 'miss'}">🔎 ${t(`You guessed “${mine}”. The model ${guessed === dirOf(T) ? 'agrees' : 'disagrees'}; the thermometer ${guessed === dirOf(ST) ? 'agrees' : 'disagrees'}.`, `你猜的是"${mine}"。模型${guessed === dirOf(T) ? '同意' : '不同意'}；温度计${guessed === dirOf(ST) ? '同意' : '不同意'}。`)}</p>`;
+  box.innerHTML = `<div class="card answer"><p class="q">${esc(q.text)}</p>
+    <p class="cap">${t('Each dot = one year’s average air temperature from the NASA model (°C); thick line = the trend; light fan = the likely range.', '每个点 = NASA 模型给出的一年平均气温（°C）；粗线 = 趋势；浅色扇形 = 很可能的范围。')}</p>
+    ${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly model temperature with trend line', '模型每年气温和趋势线')) })}
+    <div class="after" id="after" hidden>${badge}
+      <p class="big unsure">${t('Two sources, two answers', '两套数据，两个答案')}</p>
+      <div class="duel">
+        <div class="part"><div class="part-q">🛰️ ${t(`NASA model (MERRA-2), 110 km ${term('region', 'region')}`, `NASA 模型（MERRA-2），110 公里${term('region', '区域')}`)}</div><div class="part-a ${dirOf(T)}">${says(T)} ${dirOf(T) === 'up' ? '↗' : '↘'}</div><div class="part-d">${per(T)} · ${sig(T)} · ${T.firstYear}–${T.lastYear}</div></div>
+        <div class="part"><div class="part-q">🌡️ ${t(`Thermometer: ${esc(src.stationName)} weather station (NOAA)`, `温度计：${esc(src.stationName)} 气象站（NOAA）`)}</div><div class="part-a ${dirOf(ST)}">${says(ST)} ${dirOf(ST) === 'up' ? '↗' : '↘'}</div><div class="part-d">${per(ST)} · ${sig(ST)} · ${ST.n} ${t('complete years', '个完整年份')}</div></div>
+      </div>
+      <div class="callout"><h3>${t('Case open: why would they disagree?', '案子还没破：为什么两者会不一样？')}</h3><p>${t('In 7 of our 8 cities the model and the thermometer agree closely, so this is unusual. The station measures one spot in a fast-growing city; the model averages a 110 km region that also takes in large areas of irrigated farmland, and it can miss local effects. Neither number is “the truth” on its own — the leads below are where a detective would look next.', '在我们的 8 个城市里，有 7 个模型和温度计非常接近，所以这里很不寻常。气象站测的是一座快速扩张的城市里的一个点；模型是 110 公里区域的平均，里面还包括大片灌溉农田，也可能漏掉本地因素。单看哪一个数字都不是"真相"，下面的线索是侦探接下来要查的方向。')}</p></div>
+      <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
+      <details class="stats"><summary>${t('The model’s answer in detail', '模型答案的细节')}</summary>${parts(r, v)}${statsTable(r, v).replace(/^<details class="stats"><summary>[^<]*<\/summary>/, '').replace(/<\/details>$/, '')}</details>
+    </div></div>`;
+  runReplay();
+}
+
+// If the city's weather station trends the other way, say so right under the big answer.
+function stationWarning(r, v) {
+  if (v.id !== 'T2M') return '';
+  const s = state.results.T2M_STATION?.[state.site];
+  if (!s?.test || Math.sign(s.test.slope) === Math.sign(r.test.slope)) return '';
+  const name = state.data.series[state.site].T2M_STATION.source.stationName;
+  return `<p class="note">⚠️ ${t(`But the city’s ${esc(name)} weather station shows ${s.test.slope > 0 ? 'warming' : 'cooling'} (${sign(s.test.slope * 10, 2)} °C per decade). The model and the thermometer disagree — see Clue 3 before believing either.`, `但城里的 ${esc(name)} 气象站显示的是${s.test.slope > 0 ? '升温' : '降温'}（每十年 ${sign(s.test.slope * 10, 2)} °C）。模型和温度计意见相反，先看线索 3，再决定信哪一个。`)}</p>`;
+}
 function renderAnswer() {
   state.cancel?.();
   const box = $('answer');
@@ -163,6 +199,7 @@ function renderAnswer() {
       <button type="button" class="link-btn" data-guess="skip">${t('Skip — just show me', '跳过，直接看答案')}</button></div>`;
     return;
   }
+  if (q.mystery) { renderMystery(box, q, r, v); return; }
   const truth = { up: 'up', down: 'down', unsure: 'flat' }[r.verdict];
   const mine = { up: v.up(), down: v.down(), flat: t('No clear change', '看不出变化') }[state.guess];
   const badge = state.guess === 'skip' ? '' : state.guess === truth
@@ -173,7 +210,7 @@ function renderAnswer() {
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${v.unit}); thick line = the trend; light fan = the likely range.`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${v.unit}）；粗线 = 趋势；浅色扇形 = 很可能的范围。`)}</p>
     ${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}
     <div class="after" id="after" hidden>${badge}
-      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${everyday(r, v)}${parts(r, v)}
+      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${parts(r, v)}
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
       ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
       <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
@@ -227,6 +264,12 @@ function crossCheck() {
   if (!a?.test || !b?.test) return '';
   const dir = r => (r.test.slope > 0 ? t('up', '上升') : t('down', '下降'));
   const agree = Math.sign(a.test.slope) === Math.sign(b.test.slope);
+  if (c.station) {
+    const src = state.data.series[state.site][c.id].source, v = VAR(state.variable);
+    const per = r => `${sign(r.test.slope * 10, v.dp)} ${v.unit}/${t('decade', '十年')}`;
+    const sigTxt = r => (r.test.p < 0.05 ? t('significant', '显著') : t('not significant on its own', '单独看不显著'));
+    return `<p>${t(`Thermometer check — <b>${esc(src.stationName)}</b> weather station (${b.test.n} complete years, ${b.test.firstYear}–${b.test.lastYear}): <b>${per(b)}</b> (${sigTxt(b)}). The model region average: <b>${per(a)}</b>.`, `温度计核对：<b>${esc(src.stationName)}</b> 气象站（${b.test.n} 个完整年份，${b.test.firstYear}–${b.test.lastYear}）：<b>${per(b)}</b>（${sigTxt(b)}）。模型区域平均：<b>${per(a)}</b>。`)} ${agree ? t('They agree on the direction.', '两者方向一致。') : `<b>${t('They disagree.', '两者方向相反。')}</b> ${t('The model and the thermometer tell different stories here, so this answer should not be trusted on its own. A station sits at one point in the city; the model averages a 110 km region and can miss local effects. Finding out why is the next piece of detective work.', '模型和温度计在这里讲的是两个故事，所以不能单凭本页答案下结论。气象站只代表城里的一个点；模型是 110 公里范围的平均，可能漏掉本地因素。弄清为什么，就是下一步的侦探工作。')}`}</p>`;
+  }
   return `${state.variable === 'AOD' ? modelHaze(a) : ''}<p>${t(`Same question, different dataset — ${c.label()} (${b.test.firstYear}–${b.test.lastYear}${b.season ? ', ' + seasonLabel(b.season) : ''}) looks <b>${dir(b)}</b>; this answer looks <b>${dir(a)}</b>.`, `换一套数据问同一个问题：${c.label()}（${b.test.firstYear}–${b.test.lastYear}${b.season ? '，' + seasonLabel(b.season) : ''}）看起来<b>${dir(b)}</b>；本页答案看起来<b>${dir(a)}</b>。`)} ${agree ? t('They agree on the direction.', '两者方向一致。') : t('They disagree, so be extra careful.', '两者方向不一致，结论要更谨慎。')}</p>`;
 }
 function renderClues() {
@@ -253,15 +296,18 @@ function renderClues() {
 
 // ---------- data catalogue ----------
 function renderCatalog() {
-  const ids = [...VARIABLES.filter(v => !v.pending).map(v => v.id), 'AOD_AQUA', 'AOD_MODEL', 'T2M_POWER'];
+  state.results.T2M_POWER ??= compare(state.data.series, 'T2M_POWER', { annual: 'mean' }, state.data.sites.map(s => s.id));
+  const ids = [...VARIABLES.filter(v => !v.pending).map(v => v.id), 'AOD_AQUA', 'AOD_MODEL', 'T2M_STATION', 'T2M_POWER'];
   const rows = ids.map(id => {
     const meta = state.data.variables[id] ?? null;
     const any = Object.values(state.data.series).find(s => s[id])?.[id];
     const tested = Object.values(state.results[id] ?? {}).filter(r => r.test).length;
     const gaps = state.data.sites.map(s => [s.id, state.data.series[s.id]?.[id]?.missing ?? 0]).filter(([, m]) => m > 0).map(([s, m]) => `${shortSite(s)} ${m}`);
     const seasons = Object.entries(state.results[id] ?? {}).filter(([, r]) => r.season).map(([s, r]) => `${shortSite(s)} ${seasonLabel(r.season)}`);
-    const name = VAR(id)?.name() ?? { AOD_AQUA: t('Haze (Aqua satellite)', '雾霾（Aqua 卫星）'), AOD_MODEL: t('Haze (model)', '雾霾（模型）'), T2M_POWER: t('Air temperature (one grid cell)', '气温（单个格点）') }[id];
-    const product = meta ? `${esc(meta.product)}<br><a href="https://doi.org/${meta.doi}" target="_blank" rel="noopener">doi:${meta.doi}</a>` : 'NASA POWER Monthly API v2.10.0 (MERRA-2)';
+    const name = VAR(id)?.name() ?? { AOD_AQUA: t('Haze (Aqua satellite)', '雾霾（Aqua 卫星）'), AOD_MODEL: t('Haze (model)', '雾霾（模型）'), T2M_POWER: t('Air temperature (one grid cell)', '气温（单个格点）'), T2M_STATION: t('Air temperature (weather stations)', '气温（气象站）') }[id];
+    const product = meta ? `${esc(meta.product)}<br><a href="https://doi.org/${meta.doi}" target="_blank" rel="noopener">doi:${meta.doi}</a>`
+      : id === 'T2M_STATION' ? `NOAA NCEI GHCN-Monthly v4 (TAVG, adjusted)<br><a href="https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-monthly" target="_blank" rel="noopener">ncei.noaa.gov</a> · ${t('one station per city', '每个城市一个站')}`
+      : 'NASA POWER Monthly API v2.10.0 (MERRA-2)';
     return `<tr><th>${esc(name)}</th><td>${product}</td><td>${any ? `${any.start.slice(0, 4)}–${any.end.slice(0, 4)}` : '—'}</td><td>${tested} / 8</td><td>${gaps.length ? esc(gaps.join(', ')) : t('none', '无')}${seasons.length ? `<br><small>${t('Observable months only:', '只用看得清的月份：')} ${esc(seasons.join(', '))}</small>` : ''}</td></tr>`;
   }).join('');
   $('catalog').innerHTML = `<div class="table-scroll"><table><thead><tr><th>${t('Variable', '变量')}</th><th>${t('Product', '产品')}</th><th>${t('Years', '年份')}</th><th>${t('Places tested', '可检验地点')}</th><th>${t('Missing months', '缺测月数')}</th></tr></thead><tbody>${rows}
@@ -318,13 +364,13 @@ document.addEventListener('click', e => { const x = e.target.closest('.term'); i
 
 // ---------- 30-second guided example (7 steps x 4.3 s) ----------
 const TOUR = [
-  { el: 'step1', text: () => t('A detective starts with a question data can check: is New Delhi warming too?', '侦探先提一个能用数据核对的问题：新德里也在变暖吗？') },
-  { el: 'step2', text: () => t('Each dot is a place. Red is warming, blue is cooling, grey is not sure yet.', '地图上每个点是一个地点。红色升温，蓝色降温，灰色还说不准。'), act: () => pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }) },
-  { el: 'step3', text: () => t('Every variable has a plain definition and says whether it comes from a satellite or a model.', '每个变量都有大白话解释，并标明来自卫星还是模型。') },
-  { el: 'step4', text: () => t('Guess first! We guess “got warmer”… then watch 35 years replay.', '先猜！我们猜"变暖了"……然后看 35 年逐年回放。'), act: () => { state.guess = 'up'; renderAnswer(); } },
-  { el: 'step4', text: () => t('Surprise: not warming — cooling. Then four answers: did it change, which way, by how much, how sure.', '出乎意料：没有变暖，反而在降温。然后是四个答案：变了吗、往哪变、变多少、有多确定。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
-  { el: 'step5', text: () => t('The tool doesn’t claim a cause, but it gives clues: the same variable rises in other cities.', '工具不判断原因，但给出线索：同一个变量在其他城市在上升。') },
-  { el: 'step5', text: () => t('Clue: less sunlight is reaching the ground in New Delhi — a significant drop.', '线索：新德里照到地面的阳光在显著减少。'), act: () => document.querySelector('#clues .recs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
+  { el: 'step1', text: () => t('A detective starts with a question. Today’s case: is New Delhi warming or cooling?', '侦探从一个问题开始。今天的案子：新德里在变暖，还是在变冷？') },
+  { el: 'step2', text: () => t('Each dot is a city, coloured by its temperature trend from NASA’s MERRA-2 model.', '地图上每个点是一个城市，颜色是 NASA MERRA-2 模型算出的气温趋势。'), act: () => pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }) },
+  { el: 'step3', text: () => t('Every variable comes with a plain definition and says whether it comes from a satellite or a model.', '每个变量都有大白话解释，并标明来自卫星还是模型。') },
+  { el: 'step4', text: () => t('Guess first! Most places are warming, so we guess “got warmer”… and replay 35 years.', '先猜！大多数地方在变暖，我们猜"变暖了"……然后回放 35 年。'), act: () => { state.guess = 'up'; renderAnswer(); } },
+  { el: 'step4', text: () => t('Twist: the model says cooling, but the city’s thermometer says warming. Two sources, two answers.', '反转：模型说在降温，城里的温度计却说在升温。两套数据，两个答案。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
+  { el: 'step5', text: () => t('So we follow the leads: sunlight, haze and soil moisture around the city.', '于是跟着线索查：城市周围的阳光、雾霾和土壤湿度。') },
+  { el: 'step5', text: () => t('Lead 1: less sunlight is reaching the ground — a significant drop. The case stays open.', '线索 1：照到地面的阳光在显著减少。案子还没结。'), act: () => document.querySelector('#clues .recs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
 ];
 function stopTour() { clearTimeout(state.tour); state.tour = null; $('tourBar').hidden = true; document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
 function tourStep(i) {

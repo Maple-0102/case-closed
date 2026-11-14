@@ -15,12 +15,12 @@ export const CASES = [
   { id: 'sg', site: 'singapore', variable: 'T2M', expect: 'up',
     title: () => t('Has Singapore got warmer?', '新加坡变热了吗？'),
     sub: () => t('Start at home: an equatorial city that is hot all year.', '从身边开始：赤道城市，常年炎热。') },
-  { id: 'delhi', site: 'delhi', variable: 'T2M', expect: 'up',
-    title: () => t('Is New Delhi warming too?', '新德里也在变暖吗？'),
-    sub: () => t('Most places are warming. What do you guess here?', '大多数地方在变暖。猜猜这里呢？') },
+  { id: 'delhi', site: 'delhi', variable: 'T2M', expect: 'up', mystery: true,
+    title: () => t('Mystery: is New Delhi warming or cooling?', '悬案：新德里在变暖，还是在变冷？'),
+    sub: () => t('Two data sources give two different answers. Make your guess, then follow the clues.', '两套数据，两个不同的答案。先猜，再跟着线索查。') },
   { id: 'delhisun', site: 'delhi', variable: 'SUN', expect: 'down',
     title: () => t('Is less sunlight reaching the ground in New Delhi?', '新德里照到地面的阳光变少了吗？'),
-    sub: () => t('A clue to the cooling: haze and clouds can block the Sun.', '降温的一条线索：雾霾和云会挡住太阳。') },
+    sub: () => t('A clue in the New Delhi mystery: haze and clouds can block the Sun.', '新德里悬案的一条线索：雾霾和云会挡住太阳。') },
   { id: 'london', site: 'london', variable: 'SUN', expect: 'down',
     title: () => t('Foggy London: is less sunlight reaching the ground?', '"雾都"伦敦，照到地面的阳光变少了吗？'),
     sub: () => t('New Delhi is getting less sunlight. What about London?', '新德里的阳光在变少。伦敦呢？') },
@@ -49,10 +49,9 @@ export const PLACE_TYPES = [
 // Clue 2: other variables worth checking at the same place, with the reason to look.
 export const CLUES = {
   delhi: [
-    ['SUN', () => t('Is less sunlight reaching the ground?', '照到地面的阳光有没有变少？')],
-    ['AOD', () => t('Haze blocks sunlight and can cool the ground. Is haze increasing?', '雾霾会挡住阳光，让地面变凉。雾霾在变多吗？')],
-    ['SOIL', () => t('Irrigation makes soil wetter and the surface cooler. Is the soil getting wetter?', '大面积灌溉会让土壤更湿、地面更凉。土壤在变湿吗？')],
-    ['T2M', () => t('Back to temperature: how sure is the cooling?', '回到气温：降温有多确定？')],
+    ['SUN', () => t('Lead 1: in the model, is less sunlight reaching the ground? Less sun means a cooler surface.', '线索 1：模型里，照到地面的阳光变少了吗？阳光少，地面就凉。')],
+    ['AOD', () => t('Lead 2: haze blocks sunlight. Do satellites see more haze over the region?', '线索 2：雾霾会挡住阳光。卫星看到这片区域的雾霾变多了吗？')],
+    ['SOIL', () => t('Lead 3: the model’s 110 km region takes in large areas of irrigated farmland, which stays wet and cool; the station sits in the growing city. Is the soil getting wetter?', '线索 3：模型的 110 公里区域里有大片灌溉农田，又湿又凉；气象站却在不断扩张的城市里。土壤在变湿吗？')],
   ],
   london: [
     ['AOD', () => t('Cleaner air lets more sunlight through. Is haze decreasing?', '空气变干净，阳光就能更多地照下来。雾霾在变少吗？')],
