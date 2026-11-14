@@ -1,7 +1,7 @@
 // Hero "case wall": a hand-drawn world map with one warming-stripe evidence card per city,
 // pinned with red string to the central case file. Stripes come from our own data
 // (MERRA-2 yearly air temperature, each year compared with that city's 1991-2020 average).
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { t } from './i18n.js';
 import { yearly } from './data.js';
 import { shortSite } from './content.js';

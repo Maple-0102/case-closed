@@ -1,6 +1,6 @@
 """Move Giovanni area-averaged time-series CSVs from ~/Downloads into data/raw/giovanni/.
 
-Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 
 Giovanni names files like
   g4.areaAvgTimeSeries.<VARIABLE_ID>.<YYYYMMDD-YYYYMMDD>.<bbox tag>.csv

@@ -1,6 +1,6 @@
 # Method and validation
 
-Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 
 ## From monthly data to one value per year
 - Monthly values from Giovanni (area average over a 1° × 1° box) are converted to display units (`scripts/build_data.py`).
@@ -41,7 +41,20 @@ For each city we take the station with the most complete 1991–2025 record insi
 | Manaus | Manaus | 21 | +0.31 | +0.19 | yes |
 | Sydney | Sydney Airport | 35 | +0.40 | +0.35 | yes |
 
-Seven of eight agree closely. In New Delhi the model shows cooling and the station shows (non-significant) warming; the page says so next to the answer.
+Seven of eight agree closely. In New Delhi the model looks like cooling and the station looks like warming; the page says so next to the answer.
+
+The page uses the same rule: model and station are always compared over the years both have complete, and each one's full record is shown alongside as a supplement. Over those 32 shared years in New Delhi, neither trend is significant on its own (model −0.23, station +0.16 °C per decade), and they point in opposite directions, so not even the direction is settled. Over its full 35 years the model's cooling is only just significant (q = 0.048), and the start-year check finds it significant from only 9 of 21 start years. The page presents New Delhi as an open case.
+
+## Start-year check ("Don't get fooled", `startYearCheck` and `correctAcrossSites` in `src/data.js`)
+Does the answer depend on which year we start counting from? A slider under the main chart lets the user move the start year and see the chart and the stamp change.
+- The end year stays at the last complete year. The start moves forward one year at a time. Every window needs at least 15 calendar years and 15 complete years (1991–2025 gives 21 start years, 1991–2011). Start years with missing data are skipped, not replaced by the next year.
+- The yearly values are built once, so every window uses the same months (this matters for the seasonal satellite haze series).
+- Every window is judged by the same rule as the official answer: Mann-Kendall with the autocorrelation correction, then one Benjamini-Hochberg correction across all places that have that start year. The full-record window takes the official q-value, so dragging the slider back to the first year always gives the official stamp.
+- Windows overlap heavily and are not corrected against each other; each 95% interval covers only its own window. The check is exploratory and never changes the official answer or the report's verdict.
+- Verdicts, checked in this order: no window supported ("no start year cracks this case"); slopes of both signs ("this story flips"); every window supported in the same direction ("rock solid"); otherwise same direction but some windows not supported. If the official answer is "not proven" but some start years would earn a "Trend supported" stamp on their own, the page warns that this is how people get fooled.
+- The report names the "most misleading start year": the one whose slope differs most from the full-period slope (largest absolute difference), with its slope, interval and number of years, plus the range of all slopes.
+- Records with fewer than 20 complete years are not checked. This is a design threshold of the tool, not a statistical guarantee.
+- Only the start year varies; the end year and the data source are fixed.
 
 ## Global comparison (NASA GISTEMP v4)
 The global land-ocean temperature index (monthly anomalies) is averaged per year in the same way and tested over the same years as each city. 1991–2025: +0.24 °C per decade (95% CI 0.19–0.30). The page shows the ratio of the city's Sen slope to the global one, only when the city's trend is significant.

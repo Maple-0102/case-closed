@@ -1,6 +1,6 @@
 // World map (equirectangular, 60°S–80°N) with one dot per study place.
 // Land outlines: world-atlas land-110m (Natural Earth, via vendor/), drawn with topojson-client.
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 const W = 960, TOP = 80, BOTTOM = -60, K = W / 360;
 const px = (lon, lat) => [(lon + 180) * K, (TOP - lat) * K];
 

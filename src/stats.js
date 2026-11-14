@@ -1,6 +1,6 @@
 // Trend statistics for yearly series: Mann-Kendall test, Sen's slope with confidence
 // interval, lag-1 autocorrelation correction (Yue & Wang 2004), Benjamini-Hochberg.
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 //
 // Input everywhere: an array of { year, value } with numeric values, sorted or not.
 // Years may have gaps; slopes always use the real year difference.

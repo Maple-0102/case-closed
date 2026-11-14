@@ -1,6 +1,6 @@
 """Turn the raw downloads into one file the web page reads: data/processed/series.json.
 
-Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 
 Inputs (never modified):
   data/raw/giovanni/<site>__<VARIABLE_ID>__<YYYYMMDD-YYYYMMDD>.csv   Giovanni area averages (1 deg box)

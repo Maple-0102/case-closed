@@ -1,5 +1,5 @@
 // From monthly series (data/processed/series.json) to yearly values and trend results.
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { trendTest, benjaminiHochberg, MIN_YEARS } from './stats.js';
 
 const daysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m is 1-12
@@ -77,4 +77,76 @@ export function compare(series, variableId, meta, siteIds, alpha = 0.05) {
   });
   Object.values(results).forEach(r => { if (!r.test) r.verdict = 'na'; });
   return results;
+}
+
+// ---------- start-year check ("Don't get fooled") ----------
+// Does the answer depend on which year we start counting from? The end year stays fixed
+// at the last complete year; the start moves forward one year at a time. This is an
+// exploratory sensitivity check, not a new test: windows overlap heavily, p-values are
+// per window (no correction across windows), and it never changes the main verdict.
+// The yearly rows are passed in already built, so every window uses the same months.
+export const WINDOW_MIN_YEARS = 15;   // each window: >= 15 calendar years AND >= 15 complete years
+export const CHECK_MIN_RECORD = 20;   // design threshold for running the check at all
+
+export function startYearCheck(rows, { minYears = WINDOW_MIN_YEARS, minRecord = CHECK_MIN_RECORD, alpha = 0.05 } = {}) {
+  const ok = rows.filter(r => r.complete);
+  if (ok.length < minRecord) return { skipped: 'short', n: ok.length, minRecord };
+  const end = ok[ok.length - 1].year;
+  const windows = [], excluded = [];
+  for (let start = ok[0].year; end - start + 1 >= minYears; start++) {
+    const startRow = rows.find(r => r.year === start);
+    // A missing start year is excluded, never quietly replaced by the next complete year.
+    if (!startRow?.complete) { excluded.push({ start, reason: 'missing-start' }); continue; }
+    const use = ok.filter(r => r.year >= start);
+    if (use.length < minYears) { excluded.push({ start, reason: 'too-few-years', n: use.length }); continue; }
+    const test = trendTest(use, { alpha });
+    if (!test) { excluded.push({ start, reason: 'too-few-years', n: use.length }); continue; }
+    windows.push({ start, end, n: use.length, test, significant: test.p < alpha });
+  }
+  if (!windows.length) return { skipped: 'no-windows', n: ok.length, excluded };
+  return { windows, excluded, end, ...summarize(windows) };
+}
+
+// Summary of a set of windows, using each window's `significant` flag.
+function summarize(windows) {
+  const full = windows[0];
+  const slopes = windows.map(w => w.test.slope);
+  const nSig = windows.filter(w => w.significant).length;
+  const hasUp = slopes.some(s => s > 0), hasDown = slopes.some(s => s < 0);
+  // Checked in this order, so noisy series that are never significant are not called "flipping".
+  let kind;
+  if (nSig === 0) kind = 'none-significant';
+  else if (hasUp && hasDown) kind = 'direction-changes';
+  else if (nSig === windows.length && windows.every(w => w.test.direction === windows[0].test.direction)) kind = 'robust';
+  else kind = 'same-direction-partial';
+  // Fixed rule for the report: the start whose slope differs most from the full-period slope.
+  const farthest = windows.reduce((a, w) => (Math.abs(w.test.slope - full.test.slope) > Math.abs(a.test.slope - full.test.slope) ? w : a), full);
+  return {
+    kind, full, farthest, count: windows.length, nSig,
+    slopeMin: Math.min(...slopes), slopeMax: Math.max(...slopes),
+    direction: hasUp && !hasDown ? 'up' : hasDown && !hasUp ? 'down' : 'mixed',
+  };
+}
+
+// Apply the same rule as the official answer to every window: for each start year, the
+// windows of all places that have it get one Benjamini-Hochberg correction together.
+// The full-record window takes the official q-value, so it always matches the main answer.
+// checks: { site: startYearCheck result }, officialQ: { site: q }.
+export function correctAcrossSites(checks, officialQ, alpha = 0.05) {
+  const byStart = new Map();
+  Object.entries(checks).forEach(([site, c]) => {
+    if (c.skipped) return;
+    c.windows.forEach((w, i) => {
+      if (i === 0) { w.q = officialQ[site]; return; }
+      if (!byStart.has(w.start)) byStart.set(w.start, []);
+      byStart.get(w.start).push(w);
+    });
+  });
+  byStart.forEach(ws => { benjaminiHochberg(ws.map(w => w.test.p)).forEach((q, i) => { ws[i].q = q; }); });
+  Object.values(checks).forEach(c => {
+    if (c.skipped) return;
+    c.windows.forEach(w => { w.significant = w.q < alpha; });
+    Object.assign(c, summarize(c.windows), { corrected: true });
+  });
+  return checks;
 }

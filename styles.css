@@ -1,4 +1,4 @@
-/* Trend Detective. Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team. */
+/* Trend Detective. Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author. */
 :root {
   --bg: #f4f7f6; --panel: #fff; --ink: #13252b; --muted: #5a6c72; --line: #d9e3e4; --soft: #e8f2f0;
   --accent: #0a7068; --accent-ink: #fff;
@@ -301,3 +301,44 @@ body { background: var(--bg); color: var(--ink); }
   #step6 { display: block !important; padding: 0; }
   .report { box-shadow: none; border: 0; background-image: none; max-width: none; }
 }
+
+/* "Don't get fooled": start-year check */
+.robust { clear: both; margin: 22px 0 14px; padding: 16px 16px 10px; border: 2px dashed var(--line); border-radius: 12px; background: var(--panel); }
+.robust h3 { margin: 0 0 6px; font-family: var(--type); font-size: 1.1rem; }
+.robust h4 { margin: 18px 0 4px; font-size: .95rem; }
+.robust .hint { margin: 0 0 10px; }
+.robust-verdict { font-weight: 600; margin: 10px 0 6px; }
+.slider-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+.slider-row label { font-weight: 700; font-family: var(--type); }
+.slider-row input[type=range] { flex: 1 1 220px; accent-color: var(--red); min-height: 32px; }
+.slider-row output { font-family: var(--type); font-weight: 700; min-width: 8ch; }
+.explore { border-left: 4px solid var(--line); padding: 6px 12px; margin: 6px 0 4px; background: var(--soft); border-radius: 0 8px 8px 0; }
+.explore p { margin: 4px 0; }
+.explore-head { font-size: .85rem; color: var(--muted); font-family: var(--type); }
+.explore-res { font-weight: 700; }
+.explore-res.up { color: var(--up); } .explore-res.down { color: var(--down); } .explore-res.unsure { color: var(--unsure); }
+.chart .dim { fill: var(--muted); opacity: .1; }
+.chart .pt.out { opacity: .25; }
+.chart .tr.faded { opacity: .3; stroke-dasharray: 6 5; }
+.chart.done .band.faded { opacity: .05; }
+.chart .tr-win { stroke-width: 3.5; stroke-linecap: round; }
+.chart .tr-win.up { stroke: var(--up); } .chart .tr-win.down { stroke: var(--down); } .chart .tr-win.unsure { stroke: var(--unsure); stroke-dasharray: 2 6; }
+.rb-chart { width: 100%; height: auto; display: block; }
+.rb-chart .gl { stroke: var(--line); } .rb-chart .ax { fill: var(--muted); font-size: 12px; }
+.rb-chart .zero { stroke: var(--ink); stroke-width: 1.2; opacity: .55; }
+.rb-chart .cur { fill: var(--red); opacity: .1; }
+.rb-chart .ci { stroke-width: 2; opacity: .55; }
+.rb-chart .ci.up { stroke: var(--up); } .rb-chart .ci.down { stroke: var(--down); } .rb-chart .ci.ns { stroke: var(--unsure); }
+.rb-dot { cursor: pointer; stroke-width: 2; }
+.rb-dot.up { fill: var(--up); stroke: var(--up); } .rb-dot.down { fill: var(--down); stroke: var(--down); } .rb-dot.ns { fill: var(--panel); stroke: var(--unsure); }
+.rb-dot.on { stroke: var(--ink); stroke-width: 2.5; }
+.rb-dot:focus-visible { outline: none; stroke: var(--red); stroke-width: 3; }
+@media (max-width: 600px) { .rb-chart .ax { font-size: 20px; } .rb-dot { r: 8; } .robust { padding: 12px 10px 8px; } }
+@media print { .robust, .tamper { display: none; } }
+.tamper { margin: 4px 0 18px; padding: 10px 14px 6px; border: 2px dashed var(--red); border-radius: 12px; background: var(--soft); }
+.tamper-title { margin: 0 0 2px; font-family: var(--type); font-weight: 700; }
+.tamper .hint { margin: 0 0 4px; font-size: .9rem; }
+.tamper .explore { background: var(--panel); }
+.stamp .stamp-sub { display: block; font-size: .58em; letter-spacing: .1em; margin-top: 2px; text-align: center; }
+.stamp-window { border-style: double; border-width: 4px; }
+.after .parts, .after .duel { clear: both; }

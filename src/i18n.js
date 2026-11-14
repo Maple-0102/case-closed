@@ -1,5 +1,5 @@
 // English / Chinese text helper. English is the default (submission language).
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 let lang = 'en';
 export const getLang = () => lang;
 export const setLang = l => { lang = l === 'zh' ? 'zh' : 'en'; return lang; };

@@ -1,5 +1,5 @@
 // Tests for src/stats.js. Run: node --test
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalCdf, normalQuantile, kendallS, kendallVariance, pairwiseSlopes, ar1Inflation, trendTest, benjaminiHochberg } from '../src/stats.js';

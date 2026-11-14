@@ -1,5 +1,5 @@
 // Cases, guiding questions, clues and glossary.
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { t } from './i18n.js';
 
 export const SITE_NAMES = {

@@ -1,5 +1,5 @@
 // Variables shown in the tool: plain-language names, definitions, units and how a year is summarised.
-// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+// Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { t } from './i18n.js';
 
 // annual: 'mean' or 'total' (mean daily rate x days in year). scale converts units for display.

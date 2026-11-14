@@ -1,6 +1,6 @@
 """Download monthly NASA POWER data (MERRA-2 based) for the study sites.
 
-Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
+Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 
 Saves the raw API response for each site to data/raw/power/<site>.json and writes
 data/raw/power/manifest.json with the request URL, retrieval time and SHA-256.
