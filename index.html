@@ -6,12 +6,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trend Detective</title>
 <meta name="description" content="Be a data detective with NASA Earth science data: is it changing, which way, by how much, and how sure are we?">
-<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f4ecdc">
+<!-- Preview when the link is shared -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Trend Detective">
+<meta property="og:description" content="Is Earth changing? Guess, then let 35 years of NASA satellite and model data testify, and learn to tell a real trend from year-to-year noise.">
+<meta property="og:url" content="https://maple-0102.github.io/trend-detective/">
+<meta property="og:image" content="https://maple-0102.github.io/trend-detective/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Trend Detective case wall: eight cities with temperature stripes pinned to one case file">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="styles.css?v=20261115u">
 </head>
 <body>
 <header class="top">
   <div class="wrap top-inner">
-    <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">◎</span><span data-t="brand"></span></a>
+    <a class="brand" href="./"><img class="brand-mark" src="favicon.svg" alt="" width="32" height="32"><span data-t="brand"></span></a>
     <div class="lang" role="group" aria-label="Language">
       <button type="button" data-lang="en">EN</button><button type="button" data-lang="zh">中文</button>
     </div>
@@ -27,46 +39,56 @@
     <div class="hero-text">
       <h1 class="type-title" data-t="heroTitle"></h1>
       <p class="lede" data-t="heroLede"></p>
-      <div class="hero-actions">
-        <button type="button" class="btn" id="openCase" data-t="openCase"></button>
-        <button type="button" class="btn btn-soft" id="tourBtn" data-t="tourBtn"></button>
+      <div class="hero-actions" id="heroActions">
+        <button type="button" class="entry" id="tourBtn"><span class="entry-ic" aria-hidden="true">▶</span><span class="entry-tx"><b data-t="tourBtn"></b><small data-t="tourBtnSub"></small></span></button>
+        <button type="button" class="entry" id="openCase"><span class="entry-ic" aria-hidden="true">📁</span><span class="entry-tx"><b data-t="openCase"></b><small data-t="openCaseSub"></small></span></button>
+        <button type="button" class="entry" data-goto="guide"><span class="entry-ic" aria-hidden="true">🧩</span><span class="entry-tx"><b data-t="buildBtn"></b><small data-t="buildBtnSub"></small></span></button>
+        <button type="button" class="entry" data-goto="step2"><span class="entry-ic" aria-hidden="true">🗺️</span><span class="entry-tx"><b data-t="mapBtn"></b><small data-t="mapBtnSub"></small></span></button>
       </div>
+      <p class="load-status" id="loadStatus" role="status"></p>
     </div>
   </section>
 
   <section class="step" id="step1" aria-labelledby="s1">
     <h2 class="step-title"><span class="num">1</span><span id="s1" data-t="s1"></span></h2>
+    <p class="hint tap-line" data-t="s1hint"></p>
     <div class="cases" id="cases"></div>
-    <div class="guide" id="guide"></div>
   </section>
 
   <section class="step" id="step2" aria-labelledby="s2">
     <h2 class="step-title"><span class="num">2</span><span id="s2" data-t="s2"></span></h2>
-    <p class="hint" data-t="s2hint"></p>
-    <div class="card map-card">
-      <svg id="map" viewBox="0 0 960 373" role="img"></svg>
-      <div class="legend" id="legend"></div>
+    <div class="pick-grid sheet">
+      <div class="pick-part">
+        <div class="part-head"><span class="part-n">A</span><h3 class="part-h" data-t="s2a"></h3><span class="part-hint" data-t="s2hint"></span><span class="now" id="s2now"></span></div>
+        <div class="map-card">
+          <svg id="map" viewBox="0 0 960 373" role="img"></svg>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="chips" id="places"></div>
+      </div>
+      <div class="pick-part" id="step3">
+        <div class="part-head"><span class="part-n">B</span><h3 class="part-h" id="s3" data-t="s3"></h3><span class="part-hint" id="s3hint"></span></div>
+        <div class="vars" id="vars"></div>
+        <p class="var-info" id="varInfo"></p>
+        <div class="see-answer"><button type="button" class="btn" data-goto="step4" id="seeAnswer"></button></div>
+      </div>
     </div>
-    <div class="chips" id="places"></div>
-  </section>
-
-  <section class="step" id="step3" aria-labelledby="s3">
-    <h2 class="step-title"><span class="num">3</span><span id="s3" data-t="s3"></span></h2>
-    <div class="vars" id="vars"></div>
   </section>
 
   <section class="step" id="step4" aria-labelledby="s4" aria-live="polite">
-    <h2 class="step-title"><span class="num">4</span><span id="s4" data-t="s4"></span></h2>
+    <h2 class="step-title"><span class="num">3</span><span id="s4" data-t="s4"></span></h2>
+    <p class="hint tap-line" data-t="s4hint"></p>
     <div id="answer"></div>
   </section>
 
   <section class="step" id="step5" aria-labelledby="s5" hidden>
-    <h2 class="step-title"><span class="num">5</span><span id="s5" data-t="s5"></span></h2>
+    <h2 class="step-title"><span class="num">4</span><span id="s5" data-t="s5"></span></h2>
+    <p class="hint tap-line" data-t="s5hint"></p>
     <div id="clues"></div>
   </section>
 
   <section class="step" id="step6" aria-labelledby="s6r" hidden>
-    <h2 class="step-title"><span class="num">6</span><span id="s6r" data-t="s6"></span></h2>
+    <h2 class="step-title"><span class="num">5</span><span id="s6r" data-t="s6"></span></h2>
     <div id="report"></div>
   </section>
 
@@ -86,6 +108,6 @@
 </div>
 
 <script src="vendor/topojson-client.min.js"></script>
-<script type="module" src="src/app.js"></script>
+<script type="module" src="src/app.js?v=20261115u"></script>
 </body>
 </html>

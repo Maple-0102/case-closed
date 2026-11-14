@@ -196,7 +196,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--accent); }
 body { background: var(--bg); color: var(--ink); }
 .top { background: var(--panel); border-bottom: 1px dashed var(--line); }
 .brand { color: var(--ink); font-family: var(--type); letter-spacing: .08em; }
-.brand-mark { background: var(--red); color: #fffaf0; border-radius: 50%; }
+.brand-mark { width: 32px; height: 32px; background: none; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); }
 .type-title, .step-title, .case strong, .stamp, .cw-file-t, .guess-lead { font-family: var(--type); }
 .card, .guide, .var, .clue { background: var(--panel); border-color: var(--line); box-shadow: var(--shadow); }
 .btn { background: var(--ink); color: var(--panel); border-radius: 4px; letter-spacing: .02em; }
@@ -342,3 +342,172 @@ body { background: var(--bg); color: var(--ink); }
 .stamp .stamp-sub { display: block; font-size: .58em; letter-spacing: .1em; margin-top: 2px; text-align: center; }
 .stamp-window { border-style: double; border-width: 4px; }
 .after .parts, .after .duel { clear: both; }
+
+/* Home: point to the cases, and say when data is loading */
+.scroll-cue { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-family: var(--type); font-weight: 700; color: var(--red); text-decoration: none; border-bottom: 2px dashed currentColor; padding-bottom: 2px; }
+.scroll-cue span { display: inline-block; animation: cueBob 1.6s ease-in-out infinite; }
+.scroll-cue:hover { border-bottom-style: solid; }
+@keyframes cueBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .scroll-cue span { animation: none; } }
+.load-status { margin: 12px 0 0; color: var(--muted); font-style: italic; }
+.load-status.error { color: var(--red); font-style: normal; }
+
+/* Show what can be clicked */
+.tap-line { font-family: var(--type); color: var(--red); }
+.cw-file { cursor: pointer; }
+.cw-file:hover .cw-folder, .cw-file:focus-visible .cw-folder { stroke: var(--red); stroke-width: 2.4; }
+.cw-file:focus-visible { outline: none; }
+.cw-file-open { font: 700 11px var(--type); fill: var(--red); letter-spacing: .06em; }
+.case { transition: transform .15s ease, box-shadow .15s ease; }
+.case:hover, .case:focus-visible { transform: translateY(-3px); }
+.case-open { margin-top: auto; padding-top: 6px; font-family: var(--type); font-size: .82rem; font-weight: 700; color: var(--red); }
+.case:hover .case-open { text-decoration: underline; }
+.guide-next { margin: 10px 0 0 !important; font-weight: 600 !important; font-family: var(--type); color: var(--red); }
+.row-n { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--red); color: #fff; font-size: .75rem; }
+.chip:hover { border-color: var(--red); }
+.var:not([disabled]):hover { border-color: var(--red); transform: translateY(-2px); }
+.var { transition: transform .15s ease; }
+@media (prefers-reduced-motion: reduce) { .case:hover, .var:hover { transform: none; } }
+
+/* Home case wall: a little wider than the text column, and a sticky note saying cards can be clicked */
+@media (min-width: 701px) {
+  .hero .case-wall-wrap { width: min(1280px, calc(100vw - 32px)); position: relative; left: 50%; transform: translateX(-50%); }
+}
+/* Hidden (opacity 0) until its own drawing starts, so the round line cap never shows as a dot. */
+.cw-ink { fill: none; stroke: var(--red); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.cw-on .cw-ink { transition: stroke-dashoffset .9s ease-in-out 1.7s, opacity 0s linear 1.7s; stroke-dashoffset: 0; opacity: .9; }
+.cw-on .cw-ink-2 { transition-duration: .35s, 0s; transition-delay: 2.6s, 2.6s; }
+.cw-on .cw-ink-3 { transition-duration: .2s, 0s; transition-delay: 2.95s, 2.95s; }
+.cw-mark-t { font: 700 15px var(--type); fill: var(--red); opacity: 0; }
+.cw-mark-s { font: 13px var(--type); fill: #6b4d2a; opacity: 0; }
+.cw-on .cw-mark-t, .cw-on .cw-mark-s { transition: opacity .5s ease 3s; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .cw-ink { stroke-dashoffset: 0; opacity: .9; } .cw-mark-t, .cw-mark-s { opacity: 1; } }
+
+/* "Build your own case": the two-question picker sits in the case grid as a wide card */
+.cases .guide { margin-top: 14px; position: relative; background: #fffaf0; border: 2px dashed var(--red); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+.cases .guide > p { font-family: var(--type); font-size: 1.05rem; margin: 6px 0 8px; }
+.cases .guide .tag { background: transparent; color: var(--red); border: 1px solid var(--red); border-radius: 2px; font-family: var(--type); letter-spacing: .08em; text-transform: uppercase; font-size: .72rem; padding: 2px 6px; }
+@media (min-width: 900px) { .cases .guide { grid-column: span 2; } }
+.cases .guide-row { grid-template-columns: 1fr; gap: 4px; margin: 8px 0; }
+.cases .guide .chip { padding: 5px 10px; font-size: .85rem; }
+.cases .guide .chips { gap: 6px; }
+.flash { animation: flash 1.4s ease-out 1; }
+.step.flash { animation: stepFlash 1.6s ease-out 1; border-radius: 16px; }
+@keyframes stepFlash { 0%, 35% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--red) 22%, transparent); background: color-mix(in srgb, var(--red) 5%, transparent); } 100% { box-shadow: none; background: transparent; } }
+@keyframes flash { 0%, 30% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--red) 35%, transparent); } 100% { box-shadow: var(--shadow); } }
+.next-steps { margin: 18px 0 8px; padding: 14px 16px; border: 2px dashed var(--red); border-radius: 12px; background: var(--soft); text-align: center; }
+.next-steps h4 { margin: 0 0 10px; font-family: var(--type); }
+@media print { .next-steps { display: none; } }
+/* Case folders keep their own height when the "build your own" card grows with suggestions */
+@media (min-width: 900px) { .cases { align-items: start; } .cases .case { min-height: 232px; } }
+
+/* "Your case" ticket at the top of the answer */
+.ticket { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -4px 0 12px; padding: 8px 10px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--soft); }
+.ticket-h { font-family: var(--type); font-weight: 700; }
+.ticket-btn { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 5px 12px; cursor: pointer; font-weight: 700; }
+.ticket-btn u { font-weight: 400; font-size: .8rem; color: var(--red); font-family: var(--type); text-decoration: underline dotted; }
+.ticket-btn:hover { border-color: var(--red); }
+.now { margin: -6px 0 10px; font-size: .92rem; }
+/* Mini locator map in the "Your case" ticket */
+.ticket { align-items: stretch; gap: 14px; }
+.mini-wrap { flex: 0 0 230px; }
+.mini-map { width: 100%; height: auto; display: block; background: var(--sea); border-radius: 8px; border: 1px solid var(--line); }
+.mini-map .land { fill: var(--land); }
+.mini-map .pin { cursor: pointer; }
+.mini-map .pin .d { stroke: var(--panel); stroke-width: 7; }
+.mini-map .pin.up .d { fill: var(--up); } .mini-map .pin.down .d { fill: var(--down); } .mini-map .pin.unsure .d { fill: var(--unsure); }
+.mini-map .pin.na .d { fill: var(--panel); stroke: var(--unsure); }
+.mini-map .pin .ring { fill: none; stroke: var(--ink); stroke-width: 8; opacity: 0; }
+.mini-map .pin.on .ring { opacity: 1; }
+.mini-map .pin:hover .d { stroke: var(--ink); }
+.mini-cap { margin: 4px 0 0; font-family: var(--type); font-size: .78rem; color: var(--red); }
+.ticket-body { flex: 1 1 260px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.ticket-row { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 600px) { .mini-wrap { flex-basis: 100%; } }
+.mini-wrap { flex-basis: 280px; }
+.ticket-body { align-items: flex-start; }
+.mini-map .land { fill: color-mix(in srgb, var(--land) 85%, var(--ink)); }
+
+/* Step 2 holds both choices: place, then what to measure */
+.pick-part { padding: 4px 0 6px; border-radius: 14px; }
+.pick-part + .pick-part { margin-top: 22px; padding-top: 18px; border-top: 1.5px dashed var(--line); }
+.part-h { margin: 0 0 4px; font-family: var(--type); font-size: 1.08rem; }
+.pick-part.flash { animation: stepFlash 1.6s ease-out 1; }
+.see-answer { text-align: center; margin-top: 14px; }
+/* Home: the four ways in look the same; they fill in on hover */
+/* Home: four ways in, as small entry cards (icon, title, one-line hint) */
+.hero .hero-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: min(1140px, calc(100vw - 32px)); max-width: none; position: relative; left: 50%; transform: translateX(-50%); margin: 8px 0 0; }
+@media (max-width: 900px) { .hero .hero-actions { width: 100%; left: 0; transform: none; } }
+.entry { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; background: #fffaf0; color: #2b2620; border: 1px solid var(--manila-edge); border-radius: 12px; box-shadow: 0 1px 0 var(--manila-edge), 0 6px 16px rgba(60, 40, 10, .08); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.entry:hover, .entry:focus-visible { transform: translateY(-3px); border-color: var(--red); box-shadow: 0 1px 0 var(--red), 0 10px 22px rgba(60, 40, 10, .14); outline: none; }
+.entry:active { transform: translateY(0); }
+.entry-ic { flex: 0 0 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--manila); border: 1px solid var(--manila-edge); font-size: 1.25rem; color: var(--red); }
+.entry-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.entry-tx b { font-family: var(--type); font-size: .98rem; line-height: 1.2; }
+.entry-tx small { color: var(--muted); font-size: .8rem; }
+@media (max-width: 900px) { .hero .hero-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .hero .hero-actions { grid-template-columns: 1fr; } }
+
+/* What to measure: a row of buttons right under the city buttons; the map stays full width */
+.pick-part + .pick-part { margin-top: 14px; padding-top: 14px; }
+#step3 .vars { display: flex; flex-wrap: wrap; gap: 8px; }
+#step3 .var { flex-direction: row; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 99px; }
+#step3 .var .icon { font-size: 1.1rem; }
+#step3 .var strong { font-size: .92rem; }
+#step3 .var p, #step3 .var .src { display: none; }
+#step3 .var:not([disabled]):hover { transform: none; }
+.var-info { margin: 10px 0 0; font-size: .9rem; color: var(--muted); }
+.var-info b { color: var(--ink); }
+#seeAnswer.flash { animation: flash 1.2s ease-out 1; }
+#seeAnswer { font-size: 1rem; padding: 12px 20px; }
+
+/* Step 2 as one "case sheet": A Where?  B What to measure? */
+.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 20px; box-shadow: var(--shadow); }
+.sheet .pick-part + .pick-part { margin-top: 18px; padding-top: 16px; border-top: 1.5px dashed var(--line); }
+.part-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin: 0 0 10px; }
+.part-n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; font-family: var(--type); font-weight: 700; font-size: .9rem; align-self: center; }
+.part-h { margin: 0; font-family: var(--type); font-size: 1.15rem; }
+.part-hint { font-family: var(--type); color: var(--red); font-size: .92rem; }
+.part-head .now { margin: 0 0 0 auto; font-size: .92rem; }
+.sheet .map-card { margin: 0 0 10px; }
+.tamper.flash { animation: stepFlash 1.6s ease-out 1; }
+
+/* Manila tab button (same look as the home buttons) */
+.tab-btn { background: var(--manila); color: #2b2620; border: 2px solid #2b2620; border-radius: 6px; padding: 9px 15px; box-shadow: 4px 4px 0 #2b2620; transition: transform .12s ease, box-shadow .12s ease; }
+.tab-btn:hover, .tab-btn:focus-visible { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--red); outline: none; }
+.tab-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2b2620; }
+.next-steps .hero-actions { gap: 14px; }
+.cw-down { font: 900 16px system-ui, -apple-system, sans-serif; fill: #6b4d2a; }
+
+/* Case briefs and detective's notes */
+.case-tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.topic-tag { font-size: .72rem; color: #5a4c31; border: 1px solid var(--manila-edge); border-radius: 2px; padding: 1px 6px; background: rgba(255,255,255,.35); }
+.brief { max-width: 640px; margin: 4px auto 10px; padding: 10px 14px; background: #fff3a8; border: 1px solid #d9c76a; border-radius: 3px; box-shadow: 1px 2px 3px rgba(60,40,10,.15); transform: rotate(-.6deg); text-align: left; font-size: .95rem; }
+.det-note { margin: 14px 0 10px; padding: 12px 16px; border: 2px dashed var(--red); border-radius: 10px; background: var(--panel); }
+.det-note h3 { margin: 0 0 6px; font-family: var(--type); font-size: 1.02rem; color: var(--red); }
+.det-note p { margin: 0; }
+
+/* Entry cards as small manila folders, matching the case files below */
+.entry { position: relative; margin-top: 12px; background: var(--manila); border: 1px solid var(--manila-edge); border-radius: 2px 8px 8px 8px; box-shadow: var(--shadow); }
+.entry::before { content: ""; position: absolute; left: -1px; top: -12px; width: 38%; height: 12px; background: var(--manila); border: 1px solid var(--manila-edge); border-bottom: 0; border-radius: 6px 10px 0 0; }
+.entry:hover, .entry:focus-visible { transform: translateY(-3px); border-color: var(--manila-edge); box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 45%, transparent), var(--shadow); }
+.entry-ic { background: #fffaf0; border-color: var(--manila-edge); }
+.entry-tx b { color: #2b2620; }
+.entry-tx small { color: #5a4c31; }
+.hero .hero-actions { width: 100%; left: 0; transform: none; }
+
+/* Final look for the four home buttons: all solid ink, like the original primary button */
+.hero .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: auto; max-width: none; left: 0; transform: none; margin: 6px 0 0; }
+.entry { margin-top: 0; display: inline-flex; align-items: center; gap: 8px; padding: 11px 17px; background: var(--ink); color: var(--panel); border: 0; border-radius: 4px; box-shadow: none; font-weight: 800; letter-spacing: .02em; }
+.entry::before { display: none; }
+.entry-ic { flex: none; width: auto; height: auto; background: none; border: 0; border-radius: 0; font-size: 1rem; color: inherit; }
+.entry-tx b { color: inherit; font-family: inherit; font-size: 1rem; }
+.entry-tx small { display: none; }
+.entry:hover, .entry:focus-visible { transform: none; background: var(--red); color: #fffaf0; border-color: transparent; box-shadow: none; outline: none; }
+@media (max-width: 480px) { .hero .hero-actions { flex-direction: column; align-items: stretch; } .entry { justify-content: center; } }
+
+/* The 30-second tour is the main start (solid ink); the three ways to explore are equal and outlined */
+.entry:not(#tourBtn) { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+.entry:not(#tourBtn):hover, .entry:not(#tourBtn):focus-visible { background: var(--ink); color: var(--panel); box-shadow: inset 0 0 0 2px var(--ink); }
+#tourBtn.entry:hover, #tourBtn.entry:focus-visible { background: var(--red); }
+#heroActions.flash { animation: flash 1.6s ease-out 2; border-radius: 8px; }

@@ -8,7 +8,7 @@ import { VARIABLES, CHECKS, VAR } from './variables.js';
 import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js';
 import { chartSvg, replay, startYearSvg } from './chart.js';
 import { loadLand, mapSvg } from './map.js';
-import { caseWallSvg, animateCaseWall } from './hero.js';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -31,7 +31,9 @@ const verdictWord = (v, vd) => (vd === 'up' && v.goingUp ? v.goingUp() : vd === 
 
 // ---------- data ----------
 async function load() {
-  state.data = await (await fetch('data/processed/series.json')).json();
+  const res = await fetch('data/processed/series.json');
+  if (!res.ok) throw new Error(`series.json: HTTP ${res.status}`);
+  state.data = await res.json();
   const ids = state.data.sites.map(s => s.id);
   VARIABLES.filter(v => !v.pending).forEach(v => { state.results[v.id] = compare(state.data.series, v.id, v, ids); });
   Object.values(CHECKS).forEach(c => { if (!state.results[c.id]) state.results[c.id] = compare(state.data.series, c.id, c, ids); });
@@ -42,7 +44,8 @@ async function load() {
 // ---------- static text ----------
 function renderStatic() {
   document.documentElement.lang = getLang() === 'zh' ? 'zh-CN' : 'en';
-  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(...STATIC[el.dataset.t]); });
+  // A missing key (e.g. an old cached i18n.js next to a new index.html) must not stop the page.
+  document.querySelectorAll('[data-t]').forEach(el => { const s = STATIC[el.dataset.t]; if (s) el.textContent = t(...s); });
   document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === getLang())));
   $('foot').innerHTML = t(
     'Data: NASA Giovanni (MERRA-2, MODIS, GPM IMERG; ~1° × 1° area averages), NASA AppEEARS (MODIS NDVI) and NASA POWER, downloaded 14 November 2026. Analyses and visualizations used in this project were produced with the Giovanni online data system, developed and maintained by the NASA GES DISC. Map: Natural Earth via world-atlas (ISC). Code: MIT licence. Built with help from Claude, an AI assistant (see README).',
@@ -52,30 +55,37 @@ function renderStatic() {
 // ---------- step 1: cases and guiding questions ----------
 function renderCases() {
   $('cases').innerHTML = CASES.map(c => `<button type="button" class="case${state.caseId === c.id ? ' on' : ''}" data-case="${c.id}">
-    <span class="tag">${t('Case', '案例')}</span><strong>${esc(c.title())}</strong><small>${esc(c.sub())}</small></button>`).join('');
+    <span class="case-tags"><span class="tag">${t('Case', '案例')}</span>${(tp => tp ? `<span class="topic-tag">${tp.icon} ${tp.name()}</span>` : '')(TOPICS.find(x => x.id === VAR(c.variable)?.topic))}</span><strong>${esc(c.title())}</strong><small>${esc(c.sub())}</small><span class="case-open">${t('Open the file →', '打开案卷 →')}</span></button>`).join('')
+    + '<div class="guide" id="guide"></div>';
 }
+const unitTerm = v => (v.id === 'NDVI' ? term('ndvi', 'NDVI') : v.unit);
 const viaName = via => (via.includes('Giovanni') ? 'NASA Giovanni' : via.includes('AppEEARS') ? 'NASA AppEEARS' : 'NASA POWER');
 const srcLabel = v => (v.kind === 'satellite' ? term('satellite', t('Satellite', '卫星')) : term('model', t('Model', '模型'))) + ' ' + esc(v.product);
 function renderGuide() {
   const chip = (attr, id, on, label) => `<button type="button" class="chip${on ? ' on' : ''}" ${attr}="${id}">${label}</button>`;
-  let recs = `<p class="hint" style="margin:8px 0 0;font-weight:400">${t('Answer both and we’ll suggest what to investigate.', '两个都选好，我们就推荐可以调查的组合。')}</p>`;
+  const next = state.topic && !state.ptype ? t('Good. Now pick a kind of place in row 2.', '好。现在在第 2 行选一种地方。')
+    : !state.topic && state.ptype ? t('Good. Now pick what to investigate in row 1.', '好。现在在第 1 行选要调查什么。')
+    : t('Click one option in each row and we’ll suggest what to investigate.', '每一行点一个选项，我们就推荐可以调查的组合。');
+  let recs = `<p class="guide-next">👆 ${next}</p>`;
   if (state.topic && state.ptype) {
     const sites = PLACE_TYPES.find(p => p.id === state.ptype).sites;
     const vars = VARIABLES.filter(v => v.topic === state.topic);
-    recs = `<div class="recs">${sites.flatMap(s => vars.map(v => {
-      const r = v.pending ? null : result(s, v.id);
-      const ok = r?.test;
-      return `<button type="button" class="rec" data-pick="${s}|${v.id}" ${ok ? '' : 'disabled'}><span class="icon" aria-hidden="true">${v.icon}</span>
-        <span><strong>${esc(t(`${v.name()} in ${shortSite(s)}`, `${shortSite(s)}的${v.name()}`))}</strong><small>${srcLabel(v)}${ok ? '' : ' · ' + (v.pending ? t('coming soon', '即将加入') : t('not enough data here', '这里数据不足'))}</small></span></button>`;
-    })).join('')}</div>`;
+    // Only suggest combinations that can be opened (gaps are explained in the data catalogue).
+    const pairs = sites.flatMap(s => vars.map(v => ({ s, v, ok: !v.pending && !!result(s, v.id)?.test })));
+    const name = ({ s, v }) => t(`${v.name()} in ${shortSite(s)}`, `${shortSite(s)}的${v.name()}`);
+    const okPairs = pairs.filter(x => x.ok);
+    recs = okPairs.length ? `<p class="guide-next">👇 ${t('Suggestions: click one to investigate.', '推荐：点一个开始调查。')}</p><div class="recs">${okPairs.map(({ s, v }) => `<button type="button" class="rec" data-pick="${s}|${v.id}"><span class="icon" aria-hidden="true">${v.icon}</span>
+        <span><strong>${esc(name({ s, v }))}</strong><small>${srcLabel(v)}</small></span></button>`).join('')}</div>`
+      : `<p class="guide-next">${t('No data for this combination yet. Try another kind of place.', '这个组合暂时没有数据，换一种地方试试。')}</p>`;
   }
-  $('guide').innerHTML = `<p>${t('Or answer two questions:', '或者，回答两个问题：')}</p>
-    <div class="guide-row"><span>${t('What do you want to investigate?', '你想调查什么？')}</span><div class="chips">${TOPICS.map(x => chip('data-topic', x.id, state.topic === x.id, `${x.icon} ${x.name()}`)).join('')}</div></div>
-    <div class="guide-row"><span>${t('What kind of place?', '你想看哪种地方？')}</span><div class="chips">${PLACE_TYPES.map(x => chip('data-ptype', x.id, state.ptype === x.id, x.name())).join('')}</div></div>${recs}`;
+  $('guide').innerHTML = `<span class="tag">${t('Build your own', '自己组案子')}</span><p>🧩 ${t('Or build your own case: answer two questions', '或者自己组一个案子：回答两个问题')}</p>
+    <div class="guide-row"><span><b class="row-n">1</b>${t('What do you want to investigate?', '你想调查什么？')}</span><div class="chips">${TOPICS.map(x => chip('data-topic', x.id, state.topic === x.id, `${x.icon} ${x.name()}`)).join('')}</div></div>
+    <div class="guide-row"><span><b class="row-n">2</b>${t('What kind of place?', '你想看哪种地方？')}</span><div class="chips">${PLACE_TYPES.map(x => chip('data-ptype', x.id, state.ptype === x.id, x.name())).join('')}</div></div>${recs}`;
 }
 
 // ---------- step 2: map ----------
 function renderMap() {
+  $('s2now').innerHTML = state.site ? `${t('Selected:', '已选：')} <b>📍 ${esc(siteName(state.site))}</b>` : '';
   const v = VAR(state.variable);
   const sites = state.data.sites.map(s => ({ id: s.id, lon: s.lon, lat: s.lat, label: esc(shortSite(s.id)), cls: result(s.id)?.verdict ?? 'na', on: state.site === s.id }));
   $('map').innerHTML = mapSvg(sites);
@@ -86,6 +96,13 @@ function renderMap() {
 
 // ---------- step 3: variables ----------
 function renderVars() {
+  const v = VAR(state.variable);
+  $('s3hint').textContent = state.site
+    ? t(`👆 In ${shortSite(state.site)}: pick one, then press “See the answer”.`, `👆 选一个要测量${shortSite(state.site)}的东西，再点“查看答案”。`)
+    : t('👆 Pick a place above first, then choose one here.', '👆 先在上面选一个地点，再在这里选一个。');
+  $('varInfo').innerHTML = `<b>${v.icon} ${esc(v.name())}:</b> ${esc(v.def())} · ${srcLabel(v)}`;
+  $('seeAnswer').hidden = !state.site;
+  if (state.site) $('seeAnswer').textContent = t(`See the answer: ${v.name()} in ${shortSite(state.site)} ↓`, `查看答案：${shortSite(state.site)}的${v.name()} ↓`);
   $('vars').innerHTML = VARIABLES.map(v => `<button type="button" class="var${state.variable === v.id ? ' on' : ''}" data-var="${v.id}" ${v.pending ? 'disabled' : ''}>
     <span class="icon" aria-hidden="true">${v.icon}</span><strong>${esc(v.name())}</strong><p>${esc(v.def())}</p><span class="src">${srcLabel(v)}</span>
     ${v.pending ? `<span class="tag">${t('Coming soon', '即将加入')}</span>` : ''}</button>`).join('');
@@ -94,7 +111,7 @@ function renderVars() {
 // ---------- step 4: guess, replay, answer ----------
 function question(v) {
   const c = CASES.find(x => x.id === state.caseId && x.site === state.site && x.variable === state.variable);
-  return { text: c ? c.title() : t(`Is the ${v.short()} in ${shortSite(state.site)} changing?`, `${shortSite(state.site)}的${v.short()}在变化吗？`), expect: c?.expect, mystery: !!c?.mystery };
+  return { text: c ? c.title() : t(`Is the ${v.short()} in ${shortSite(state.site)} changing?`, `${shortSite(state.site)}的${v.short()}在变化吗？`), expect: c?.expect, mystery: !!c?.mystery, brief: c?.brief?.(), note: c?.note?.() };
 }
 function bigAnswer(vd, expect, v) {
   if (vd === 'unsure') return t('Not sure yet', '还说不准');
@@ -142,7 +159,7 @@ function statsTable(r, v) {
     [t('Sen slope', 'Sen 斜率'), `${dec(T.slope)} ${v.unit}/${t('decade', '十年')}; 95% CI ${T.ciLow === null ? '—' : `${dec(T.ciLow)} … ${dec(T.ciHigh)}`}`],
     [t('Autocorrelation', '自相关'), `r1 = ${T.r1.toFixed(2)}, ${t('used', '采用')} ρ = ${T.rho.toFixed(2)} (Yue & Wang AR(1)); ${t('variance ×', '方差 ×')} ${T.inflation.toFixed(2)}`],
     [t('p-value', 'p 值'), `${T.p.toPrecision(2)} (${t('uncorrected', '未修正')} ${T.pUncorrected.toPrecision(2)})`],
-    [t('Several places', '多地点校正'), `Benjamini-Hochberg q = ${r.q.toPrecision(2)} (${n} ${t('places tested together', '个地点一起检验')})`],
+    [t('Several places', '多地点校正'), `Benjamini-Hochberg ${term('qvalue', 'q')} = ${r.q.toPrecision(2)} (${n} ${t('places tested together', '个地点一起检验')})`],
     [t('Years used', '使用年份'), `${T.n} (${T.firstYear}–${T.lastYear})${r.season ? t(`, ${seasonLabel(r.season)} only`, `，只用 ${seasonLabel(r.season)}`) : ''}`],
     [t('Data', '数据'), `${esc(meta.product)} · <a href="https://doi.org/${meta.doi}" target="_blank" rel="noopener">doi:${meta.doi}</a>`],
   ];
@@ -176,7 +193,7 @@ function renderMystery(box, q, r, v) {
   const mine = { up: v.up(), down: v.down(), flat: t('No clear change', '看不出变化') }[state.guess];
   const dirOf = x => (x.slope > 0 ? 'up' : 'down');
   const badge = state.guess === 'skip' ? '' : `<p class="badge ${guessed === dirOf(T) || guessed === dirOf(ST) ? 'ok' : 'miss'}">🔎 ${t(`You guessed “${mine}”. The model ${guessed === dirOf(T) ? 'agrees' : 'disagrees'}; the thermometer ${guessed === dirOf(ST) ? 'agrees' : 'disagrees'}.`, `你猜的是"${mine}"。模型${guessed === dirOf(T) ? '同意' : '不同意'}；温度计${guessed === dirOf(ST) ? '同意' : '不同意'}。`)}</p>`;
-  box.innerHTML = `<div class="card answer"><p class="q">${esc(q.text)}</p>
+  box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>
     <p class="cap">${t('Each dot = one year’s average air temperature from the NASA model (°C); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).', '每个点 = NASA 模型给出的一年平均气温（°C）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。')}</p>
     <div id="mainChart">${chartSvg(r.rows, r.test, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly model temperature with trend line', '模型每年气温和趋势线')) })}</div>
     <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp('conflict')}</div>${badge}
@@ -186,6 +203,7 @@ function renderMystery(box, q, r, v) {
         <div class="part"><div class="part-q">🌡️ ${t(`Thermometer: ${esc(src.stationName)} weather station (NOAA)`, `温度计：${esc(src.stationName)} 气象站（NOAA）`)}</div><div class="part-a ${dirOf(ST)}">${says(ST)} ${dirOf(ST) === 'up' ? '↗' : '↘'}</div><div class="part-d">${per(ST)} · ${sig(ST)}</div></div>
       </div>
       <p class="cap">${t(`Both compared over the same ${pair.n} years where both have complete data (${pair.first}–${pair.last}). The thermometer’s full record is these same ${s.test.n} years.`, `两者都按双方都有完整数据的 ${pair.n} 个相同年份比较（${pair.first}–${pair.last}）。温度计的完整记录就是这 ${s.test.n} 年。`)}</p>
+      ${detectiveNote(q)}
       <div class="callout"><h3>${t('Case open: why would they disagree?', '案子还没破：为什么两者会不一样？')}</h3>${neither ? `<p>${t('Over the same years, neither source has enough evidence on its own, and they point in opposite directions. From these data we cannot even say which way New Delhi is heading. That is why the case stays open; the leads below are where a detective would look next.', '在相同年份里，两套数据单独看都证据不足，而且方向相反。凭这些数据，我们连新德里往哪个方向变都说不准，所以这个案子还没结；下面的线索是侦探接下来要查的方向。')}</p>` : ''}<p>${t('In 7 of our 8 cities the model and the thermometer agree closely, so this is unusual. The station measures one spot in a fast-growing city; the model averages a 110 km region that also takes in large areas of irrigated farmland, and it can miss local effects. Neither number is “the truth” on its own.', '在我们的 8 个城市里，有 7 个模型和温度计非常接近，所以这里很不寻常。气象站测的是一座快速扩张的城市里的一个点；模型是 110 公里区域的平均，里面还包括大片灌溉农田，也可能漏掉本地因素。单看哪一个数字都不是"真相"。')}</p></div>
       ${startYearBlock(r, v)}
       <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
@@ -278,7 +296,7 @@ function tamperPanel() {
   return `<div class="tamper" id="tamper">
     <p class="tamper-title">🕵️ ${t('Try to fake the evidence: keep only the years you want', '试着伪造证据：只留下你想要的年份')}</p>
     <p class="hint">${t('Drag the start year. The data never changes, only which years you look at. Watch the stamp.', '拖动起始年份。数据一点没改，变的只是你看哪几年。注意看印章。')}</p>
-    <div class="slider-row"><label for="startSlider">${t('Start year', '起始年份')}</label>
+    <div class="slider-row"><label for="startSlider">${term('startYear', t('Start year', '起始年份'))}</label>
       <input type="range" id="startSlider" min="${a}" max="${b}" step="1" value="${state.win ?? a}"><output id="startOut" for="startSlider"></output></div>
     <div class="explore" id="exploreCard" aria-live="polite"></div>
   </div>`;
@@ -291,6 +309,7 @@ function startYearBlock(r, v) {
     return `<section class="robust">${head}<p class="note">${t(`This record has only ${c?.n ?? 0} complete years. The start-year check needs at least 20, so it is not run here (a design rule of this tool, not a statistical guarantee).`, `这条记录只有 ${c?.n ?? 0} 个完整年份。起始年份检查至少需要 20 年，所以这里不做（这是本工具的设计门槛，不是统计学保证）。`)}</p></section>`;
   }
   return `<section class="robust" id="robust">${head}
+    <p><button type="button" class="btn tab-btn" data-goto="tamper">↑ ${t('Try it yourself: drag the start-year slider', '自己试试：拖动起始年份滑块')}</button></p>
     <p class="cap">${t(`Each dot = the trend from that start year to ${c.end}, per decade. ● filled = that start year alone would get a “Trend supported” stamp · ○ hollow = not proven · line = its 95% range. Click a dot to try that start year.`, `每个点 = 从该年到 ${c.end} 年的趋势（每十年）。● 实心 = 只看这段年份也能拿到"趋势有证据支持"的章 · ○ 空心 = 证据不足 · 竖线 = 95% 范围。点圆点就能试这个起点。`)}</p>
     <div id="winDots"></div>
     <p class="robust-verdict">${startYearText(c, r, v)}</p>
@@ -308,6 +327,7 @@ function updateStartYear(fromUser = false) {
   state.win = w.start === c.full.start ? null : w.start;
   $('startSlider').value = w.start;
   $('startOut').textContent = `${w.start}–${w.end}`;
+  const last = c.windows[c.windows.length - 1].start;
   if (fromUser) {
     $('mainChart').innerHTML = chartSvg(r.rows, r.test, { cls: r.verdict, unit: v.unit, dp: v.dp, still: true, win: state.win ? { start: w.start, test: w.test } : null, label: esc(t(`Yearly values; highlighted ${w.start}–${w.end}`, `每年数值；高亮 ${w.start}–${w.end}`)) });
     if (!q.mystery) $('stampSlot').innerHTML = stamp(stampKind(w, r), state.win ? `${w.start}–${w.end}` : '');
@@ -318,7 +338,20 @@ function updateStartYear(fromUser = false) {
   const word = w.significant ? (T.slope > 0 ? t('Rising, and it holds up', '在上升，而且站得住') : t('Falling, and it holds up', '在下降，而且站得住')) : (T.slope > 0 ? t('Looks like rising, but not proven', '看起来在上升，但证据不足') : t('Looks like falling, but not proven', '看起来在下降，但证据不足'));
   $('exploreCard').innerHTML = `<p class="explore-head">${state.win ? t(`Only ${w.start}–${w.end} · ${w.n} years`, `只看 ${w.start}–${w.end} · ${w.n} 年`) : t(`All years · ${w.start}–${w.end} · ${w.n} years`, `全部年份 · ${w.start}–${w.end} · ${w.n} 年`)}</p>
     <p class="explore-res ${k}">${word}${t(':', '：')} ${d(T.slope)} ${v.unit} ${t('per decade', '每十年')}</p>
+    ${w.start === last ? `<p class="cap">⛔ ${t(`This is as late as the start can go: every window keeps at least 15 years (here ${w.start}–${w.end}). Shorter records are too easily swayed by a few odd years.`, `起点最晚只能到这里：每个窗口至少保留 15 年（这里是 ${w.start}–${w.end}）。再短的话，几个反常年份就能把趋势带偏。`)}</p>` : ''}
     ${state.win ? `<p class="cap">${q.mystery ? t('The stamp stays “Conflicting evidence”: the thermometer still disagrees. The answer below covers all the years.', '印章仍是"证据矛盾"：温度计还是不同意。下面的答案针对全部年份。') : t('The stamp now judges only these years. The answer below still covers all the years.', '印章现在只评判这几年。下面的答案仍然针对全部年份。')}</p><button type="button" class="link-btn" id="resetWindow">↺ ${t('Back to all the years', '回到全部年份')}</button>` : ''}`;
+}
+// "Your case" ticket at the top of the answer: shows the place and the measure, each with a
+// button back to the step where it can be changed (visitors who start from a case card
+// skip steps 2 and 3, so this is where they learn both can be changed).
+function ticket() {
+  const v = VAR(state.variable);
+  return `<div class="ticket"><span class="ticket-h">🕵️ ${t('Your case:', '你的案子：')}</span>
+    <button type="button" class="ticket-btn" data-goto="step2">📍 ${esc(siteName(state.site))} <u>${t('change place ↑', '换地点 ↑')}</u></button>
+    <button type="button" class="ticket-btn" data-goto="step3">${v.icon} ${esc(v.name())} <u>${t('change what to measure ↑', '换测量对象 ↑')}</u></button></div>`;
+}
+function detectiveNote(q) {
+  return q.note ? `<div class="det-note"><h3>🕵️ ${t('Detective’s note', '侦探笔记')}</h3><p>${esc(q.note)}</p></div>` : '';
 }
 function renderAnswer() {
   state.cancel?.();
@@ -326,7 +359,7 @@ function renderAnswer() {
   if (!state.site) { box.innerHTML = `<div class="card answer"><p class="q">${t('Pick a case, answer the two questions, or click a place on the map.', '先选一个案例、回答两个问题，或者在地图上点一个地点。')}</p></div>`; return; }
   const v = VAR(state.variable), r = result();
   if (!r?.test) {
-    box.innerHTML = `<div class="card answer"><p class="q">${t(`Not enough ${v.short()} data for ${siteName(state.site)}`, `${siteName(state.site)}的${v.short()}数据不够`)}${state.site === 'nuuk' && v.id === 'SOIL' ? t(': the area is mostly ice and snow.', '：这里大多是冰雪。') : v.id === 'NDVI' ? t(': clouds cover this area in most months, so the satellite rarely gets a clean look at the ground. We leave cloudy months out instead of guessing.', '：这里大多数月份都被云遮住，卫星很少能看清地面。我们把多云的月份排除掉，而不是去猜。') : t(' to test a trend.', '，无法做趋势检验。')} ${t('Try another place or variable.', '换一个地点或变量试试。')}</p></div>`;
+    box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${t(`Not enough ${v.short()} data for ${siteName(state.site)}`, `${siteName(state.site)}的${v.short()}数据不够`)}${state.site === 'nuuk' && v.id === 'SOIL' ? t(': the area is mostly ice and snow.', '：这里大多是冰雪。') : v.id === 'NDVI' ? t(': clouds cover this area in most months, so the satellite rarely gets a clean look at the ground. We leave cloudy months out instead of guessing.', '：这里大多数月份都被云遮住，卫星很少能看清地面。我们把多云的月份排除掉，而不是去猜。') : t(' to test a trend.', '，无法做趋势检验。')} ${t('Try another place or variable.', '换一个地点或变量试试。')}</p></div>`;
     return;
   }
   const q = question(v), T = r.test;
@@ -339,7 +372,7 @@ function renderAnswer() {
     : fewNote ? `<p class="note">⚠️${fewNote}</p>` : '';
   if (!state.guess) {
     const opts = [['up', '↗', v.up()], ['down', '↘', v.down()], ['flat', '〰', t('No clear change', '看不出变化')]];
-    box.innerHTML = `<div class="card answer guess"><p class="q">${esc(q.text)}</p><p class="guess-lead">${t('Make a guess first!', '先猜一猜！')}</p>
+    box.innerHTML = `<div class="card answer guess">${ticket()}<p class="q">${esc(q.text)}</p>${q.brief ? `<p class="brief">📝 <b>${t('Case brief:', '案情简介：')}</b> ${esc(q.brief)}</p>` : ''}<p class="guess-lead">${t('Make a guess first!', '先猜一猜！')}</p>
       <p class="hint">${t(`From ${T.firstYear} to ${T.lastYear}, the ${r.season ? seasonLabel(r.season) + ' ' : ''}${v.short()} in ${shortSite(state.site)}…`, `从 ${T.firstYear} 年到 ${T.lastYear} 年，${shortSite(state.site)}${r.season ? `每年 ${seasonLabel(r.season)} ` : ''}的${v.short()}……`)}</p>
       <div class="guess-opts">${opts.map(([id, icon, label]) => `<button type="button" class="guess-btn" data-guess="${id}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join('')}</div>
       <button type="button" class="link-btn" data-guess="skip">${t('Skip — just show me', '跳过，直接看答案')}</button></div>`;
@@ -352,11 +385,11 @@ function renderAnswer() {
     ? `<p class="badge ok">🎯 ${t(`You got it! You guessed “${mine}”.`, `猜对了！你猜的是"${mine}"。`)}</p>`
     : `<p class="badge miss">😮 ${t(`Surprise! You guessed “${mine}”.`, `出乎意料！你猜的是"${mine}"。`)}</p>`;
   const via = t(`${viaName(state.data.series[state.site][v.id].source.via)}, ${term('region', 'region')} average`, `${viaName(state.data.series[state.site][v.id].source.via)}，${term('region', '区域')}平均`);
-  box.innerHTML = `<div class="card answer"><p class="q">${esc(q.text)}</p>${seasonNote}
-    <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${v.unit}); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${v.unit}）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。`)}</p>
+  box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>${seasonNote}
+    <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${unitTerm(v)}); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${unitTerm(v)}）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。`)}</p>
     <div id="mainChart">${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}</div>
     <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp(r.verdict === 'unsure' ? 'unproven' : 'confirmed')}</div>${badge}
-      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}
+      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}${detectiveNote(q)}
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
       ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
       ${startYearBlock(r, v)}
@@ -380,7 +413,13 @@ function runReplay() {
   after.hidden = true; $('step5').hidden = true;
   state.cancel = replay(svg, { animate, onDone: () => {
     after.hidden = false; renderClues();
-    if (animate && !state.tour) after.querySelector('.big')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Land on the slider panel: slider, stamp and big answer fit on one screen, and the
+    // panel flashes once so visitors notice they can drag it.
+    if (animate && !state.tour) {
+      const tp = $('tamper');
+      if (tp) { window.scrollTo({ top: tp.getBoundingClientRect().top + scrollY - 110, behavior: 'smooth' }); flash(tp); }
+      else after.querySelector('.big')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   } });
 }
 
@@ -496,7 +535,7 @@ function reportModel() {
   if (T.n < FEW_YEARS) open.push(t(`Only ${T.n} complete years — the result is less stable.`, `只有 ${T.n} 个完整年份，结果不够稳定。`));
   open.push(t('What caused the change? This tool shows what changed, not why.', '变化的原因是什么？本工具只回答变了什么，不回答为什么。'));
   const kind = q.mystery || conflict ? 'conflict' : r.verdict === 'unsure' ? 'unproven' : 'confirmed';
-  return { title: q.text, place: siteName(state.site), variable: v.name(), guessText, finding, evidence, checks, clues, open, kind };
+  return { title: q.text, place: siteName(state.site), variable: v.name(), guessText, finding, evidence, checks, clues, open, kind, note: q.note };
 }
 function reportHtml(m) {
   const li = xs => xs.map(x => `<li>${esc(x)}</li>`).join('');
@@ -509,6 +548,7 @@ function reportHtml(m) {
       <table>${m.evidence.map(([k, x]) => `<tr><th>${esc(k)}</th><td>${esc(x)}</td></tr>`).join('')}</table></section>
     ${m.checks.length ? `<section><h4>${t('3. Cross-checks', '3. 交叉核对')}</h4><ul>${li(m.checks)}</ul></section>` : ''}
     <section><h4>${m.checks.length ? t('4. Clues collected', '4. 收集到的线索') : t('3. Clues collected', '3. 收集到的线索')}</h4><ul>${li(m.clues)}</ul></section>
+    ${m.note ? `<section><h4>${t('Detective’s note', '侦探笔记')}</h4><p>${esc(m.note)}</p></section>` : ''}
     <section><h4>${t('Still open', '尚未解开的疑点')}</h4><ul>${li(m.open)}</ul></section>
     <footer class="rep-foot">${t('Method: yearly values, Mann-Kendall test with lag-1 autocorrelation correction, Sen slope with 95% interval, Benjamini-Hochberg across 8 cities. Data: NASA Giovanni / POWER, NOAA GHCN-Monthly, NASA GISTEMP.', '方法：年度值；Mann-Kendall 检验（含一阶自相关修正）、Sen 斜率及 95% 区间、8 城市 Benjamini-Hochberg 校正。数据：NASA Giovanni / POWER、NOAA GHCN-Monthly、NASA GISTEMP。')}</footer>
   </article>`;
@@ -518,6 +558,8 @@ function renderReport() {
   const m = reportModel();
   $('report').innerHTML = `<p class="hint">${t('Here is everything your investigation found, on one page. Print it, save it as a PDF, or download it to share.', '这是你这次调查的全部发现，汇成一页。可以打印、存成 PDF，或下载后分享。')}</p>
     ${reportHtml(m)}
+    <div class="next-steps"><h4>🕵️ ${t('Case closed. What next?', '结案了。接下来查什么？')}</h4>
+      <div class="hero-actions"><button type="button" class="btn tab-btn" data-goto="cases">📁 ${t('Open another case', '换一个案子')}</button><button type="button" class="btn tab-btn" data-goto="guide">🧩 ${t('Build your own case', '自己组一个案子')}</button><button type="button" class="btn tab-btn" data-goto="step2">🗺️ ${t('Pick a city on the map', '回到地图选城市')}</button><button type="button" class="btn tab-btn" data-goto="top">🏠 ${t('Back to the home page', '回到首页')}</button></div></div>
     <div class="hero-actions rep-actions"><button type="button" class="btn" id="printReport">${t('Print or save as PDF', '打印 / 存成 PDF')}</button><button type="button" class="btn btn-soft" id="downloadReport">${t('Download report (HTML)', '下载报告（HTML）')}</button></div>`;
 }
 function downloadReport() {
@@ -558,10 +600,19 @@ function renderHero() {
   const svg = $('caseWall');
   svg.innerHTML = `<title id="cwTitle">${esc(t(...STATIC.cwTitle))}</title>` + caseWallSvg(state.data, state.results.T2M);
   animateCaseWall(svg);
+  watchCaseWall(svg);
   const wrap = $('caseWallWrap');
   if (wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) / 2;
 }
 function renderAll() { renderStatic(); renderHero(); renderFlow(); renderCatalog(); }
+// Scroll to a step and flash it briefly so the eye follows the move.
+function flash(el) { if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+function goStep(id) {
+  const el = $(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  flash(el);
+}
 function pick({ site, variable, caseId = null, guess = null, scroll = true }) {
   if (site) state.site = site;
   if (variable) state.variable = variable;
@@ -572,6 +623,16 @@ function pick({ site, variable, caseId = null, guess = null, scroll = true }) {
 document.addEventListener('click', e => {
   if (e.target.closest('.term')) return;
   if (e.target.closest('#replayBtn')) { runReplay(); return; }
+  const go = e.target.closest('[data-goto]');
+  if (go) {
+    if (go.dataset.goto === 'top') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (/^step\d$/.test(go.dataset.goto)) { goStep(go.dataset.goto); return; }
+    if (go.dataset.goto === 'tamper' && $('tamper')) { window.scrollTo({ top: $('tamper').getBoundingClientRect().top + scrollY - 110, behavior: 'smooth' }); flash($('tamper')); return; }
+    const el = $(go.dataset.goto);
+    el?.scrollIntoView({ behavior: 'smooth', block: go.dataset.goto === 'guide' ? 'center' : 'start' });
+    if (go.dataset.goto === 'guide') { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+    return;
+  }
   if (e.target.closest('#resetWindow')) { state.win = null; updateStartYear(true); return; }
   const dot = e.target.closest('.rb-dot');
   if (dot) { state.win = Number(dot.dataset.start); updateStartYear(true); $('tamper')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
@@ -587,11 +648,12 @@ document.addEventListener('click', e => {
   if (d.pick) { const [site, variable] = d.pick.split('|'); pick({ site, variable }); return; }
   if (d.guess) { state.guess = d.guess; renderAnswer(); return; }
   if (d.hero) { pick({ site: d.site, variable: 'T2M' }); return; }
-  if (d.site) { pick({ site: d.site, guess: d.keep ? 'skip' : null, scroll: !d.keep }); return; }
-  if (d.var) pick({ variable: d.var, scroll: false });
+  if (d.site) { pick({ site: d.site, guess: d.keep ? 'skip' : null, scroll: false }); if (!d.keep) flash($('step3')); return; }
+  // Choosing what to measure only selects it; the 'See the answer' button moves on.
+  if (d.var) { pick({ variable: d.var, scroll: false }); flash($('seeAnswer')); }
 });
 document.addEventListener('keydown', e => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-site]')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-site], [role="button"][data-goto]')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
 });
 
 // glossary pop-ups (hover, tap or keyboard focus)
@@ -627,8 +689,9 @@ const TOUR = [
   { el: 'step4', text: () => t('Twist: the model looks like cooling, the city’s thermometer looks like warming, and neither is proven. Case open.', '反转：模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。案子没结。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
   { el: 'step5', text: () => t('A lead: less sunlight is reaching the ground here, a significant drop.', '一条线索：这里照到地面的阳光在显著减少。'), act: () => document.querySelector('#clues .recs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
   { el: 'step4', text: () => t('Case 2: is Cairo’s air getting cleaner? Over all the years, the satellite says: not proven.', '案子 2：开罗的空气变干净了吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', guess: 'skip', scroll: false }); state.tourDrag.push(setTimeout(() => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350)); }, noScroll: true },
-  { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 5200 },
+  { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 5000 },
   { el: 'robust', text: () => t('Gotcha! Picking the years that fit is how people get fooled. The verdict stays: not proven.', '抓到了！只挑符合说法的年份，就是被骗的套路。结论不变：证据不足。'), act: () => $('robust')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
+  { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 4000 },
 ];
 function stopTour() { clearTimeout(state.tour); state.tourDrag.forEach(clearTimeout); state.tourDrag = []; state.tour = null; $('tourBar').hidden = true; document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
 function tourStep(i) {
@@ -639,7 +702,7 @@ function tourStep(i) {
   const el = $(s.el); el?.classList.add('hl');
   if (!s.noScroll) el?.scrollIntoView({ behavior: 'smooth', block: s.block ?? 'start' });
   $('tourText').textContent = s.text();
-  state.tour = setTimeout(() => tourStep(i + 1), s.ms ?? 4300);
+  state.tour = setTimeout(() => tourStep(i + 1), s.ms ?? 3600);
 }
 $('openCase').addEventListener('click', () => $('step1').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('tourBtn').addEventListener('click', () => { stopTour(); $('tourBar').hidden = false; state.tour = -1; tourStep(0); });
@@ -650,7 +713,17 @@ let saved = null;
 try { saved = localStorage.getItem('td-lang'); } catch { /* storage unavailable */ }
 setLang(new URLSearchParams(location.search).get('lang') ?? saved ?? 'en');
 renderStatic();
-await Promise.all([load(), loadLand()]);
+// Tell the visitor something is happening while ~400 KB of data loads, and say so if it fails.
+$('loadStatus').textContent = t('Opening the case files…', '正在打开案卷……');
+try {
+  await Promise.all([load(), loadLand()]);
+} catch (err) {
+  $('loadStatus').classList.add('error');
+  $('loadStatus').innerHTML = `${esc(t('Sorry, the case files could not be loaded. Check your internet connection and try again.', '抱歉，案卷加载失败。请检查网络后重试。'))} <button type="button" class="btn btn-small" onclick="location.reload()">${esc(t('Try again', '重试'))}</button>`;
+  throw err;
+}
+$('loadStatus').textContent = '';
+$('loadStatus').hidden = true;
 renderAll();
 document.addEventListener('input', e => {
   if (e.target.id === 'startSlider') { state.win = Number(e.target.value); updateStartYear(true); }

@@ -4,11 +4,14 @@
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { t } from './i18n.js';
 import { yearly } from './data.js';
-import { shortSite } from './content.js';
+import { shortSite, CASES } from './content.js';
 import { landPath } from './map.js';
 
 const W = 960, H = 390, TOP = 80, K = W / 360;
-const px = (lon, lat) => [(lon + 180) * K, (TOP - lat) * K];
+// The map's left/right seam sits in the Bering Strait (169° W), which is open sea, so no
+// land is cut at the edges (a seam on the date line would slice through eastern Russia).
+const SEAM = -169;
+const px = (lon, lat) => [(((lon - SEAM) % 360) + 360) % 360 * K, (TOP - lat) * K];
 const CARD_W = 108, CARD_H = 78, STRIPE_H = 36;
 // Card positions (top-left) chosen so cards sit near their city without overlapping.
 const SLOTS = {
@@ -35,6 +38,19 @@ function stripes(rows, x, y, w, h) {
 }
 
 // "How to read a card" key, centred under the case file so it stays visible on phones.
+// A detective's red-marker note on the board: a rough circle round the Manaus card and an
+// arrow from a short scribbled line in the empty South Pacific. Drawn once, then it stays still.
+function note() {
+  return `<g class="cw-mark" aria-hidden="true">
+    <path class="cw-ink" pathLength="1" d="M214 205 C262 192, 322 196, 334 228 C346 262, 318 300, 262 304 C214 308, 186 290, 184 258 C182 228, 200 208, 240 199"/>
+    <path class="cw-ink cw-ink-2" pathLength="1" d="M120 318 C142 316, 172 312, 192 302"/>
+    <path class="cw-ink cw-ink-3" pathLength="1" d="M180 302 L192 302 L190 314"/>
+    <text class="cw-mark-t" x="14" y="336">${t('Click any card to start,', '点任意卡片就能开始，')}</text>
+    <text class="cw-mark-s" x="14" y="354">${t('or scroll down', '或者向下浏览')}<tspan class="cw-down" dx="4">↓</tspan>${t(` for ${CASES.length} more cases,`, `：还有 ${CASES.length} 个案子、`)}</text>
+    <text class="cw-mark-s" x="14" y="371">${t('a map, and your own question.', '一张地图，还能自己出题。')}</text>
+  </g>`;
+}
+
 function legend() {
   const x = 322, y = 334, w = 150, h = 16;
   const sample = [-0.8, -0.3, -0.9, -0.1, -0.5, 0.1, -0.4, 0.2, -0.2, 0.3, 0.0, 0.4, 0.6, 0.2, 0.7, 0.5, 0.9, 0.6];
@@ -53,7 +69,7 @@ function legend() {
 // data: series.json; results: compare() output for T2M. Returns SVG markup.
 export function caseWallSvg(data, results) {
   let s = `<defs><filter id="ink" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3.2"/></filter></defs>`;
-  const land = landPath(px);
+  const land = landPath(px, W / 2);
   if (land) s += `<path class="cw-land" d="${land}" filter="url(#ink)"/>`;
   const fx = FILE.x + FILE.w / 2, fy = FILE.y + 8;
   let strings = '', cards = '', dots = '';
@@ -69,6 +85,7 @@ export function caseWallSvg(data, results) {
     const slope = r?.test ? `${r.test.slope >= 0 ? '+' : '−'}${Math.abs(r.test.slope * 10).toFixed(2)} °C / ${t('decade', '十年')}` : '';
     const tilt = ((i % 2 ? 1 : -1) * (1 + (i % 3))).toFixed(1);
     cards += `<g class="cw-card" style="--i:${i}" data-site="${site.id}" data-hero="1" tabindex="0" role="button" aria-label="${shortSite(site.id)} ${slope}">
+      <title>${t(`Open the ${shortSite(site.id)} case`, `打开${shortSite(site.id)}的案子`)}</title>
       <g transform="rotate(${tilt} ${cx + CARD_W / 2} ${cy + CARD_H / 2})">
         <rect class="cw-paper" x="${cx}" y="${cy}" width="${CARD_W}" height="${CARD_H}"/>
         ${stripes(rows, cx + 6, cy + 6, CARD_W - 12, STRIPE_H)}
@@ -79,12 +96,13 @@ export function caseWallSvg(data, results) {
       </g></g>`;
   });
   s += dots + strings + cards;
-  s += `<g class="cw-file" transform="rotate(-1.5 ${fx} ${FILE.y + FILE.h / 2})">
+  s += `<g class="cw-file" data-goto="step1" tabindex="0" role="button" aria-label="${t('See all cases', '查看全部案子')}"><title>${t('See all cases', '查看全部案子')}</title><g transform="rotate(-1.5 ${fx} ${FILE.y + FILE.h / 2})">
     <path class="cw-folder" d="M${FILE.x} ${FILE.y + 10} h60 l8 -10 h${FILE.w - 68} v${FILE.h} h-${FILE.w} z"/>
     <text class="cw-file-t" x="${fx}" y="${FILE.y + 40}" text-anchor="middle">${t('CASE FILE 2026', '案卷 2026')}</text>
     <text class="cw-file-q" x="${fx}" y="${FILE.y + 64}" text-anchor="middle">${t('Is Earth changing?', '地球在变吗？')}</text>
-    <circle class="cw-pin" cx="${fx}" cy="${fy}" r="5"/></g>`;
-  s += legend();
+    <text class="cw-file-open" x="${fx}" y="${FILE.y + 84}" text-anchor="middle">${t('▸ see all cases', '▸ 查看全部案子')}</text>
+    <circle class="cw-pin" cx="${fx}" cy="${fy}" r="5"/></g></g>`;
+  s += legend() + note();
   return s;
 }
 
@@ -102,6 +120,20 @@ export function animateCaseWall(svg) {
   if (reduce || document.hidden) { on(); return; }
   requestAnimationFrame(on);
   setTimeout(on, 150);
+}
+
+// Play the case-wall animation again each time the visitor comes back to it: reset it
+// quietly once it is fully off screen, start it again when it scrolls back into view.
+let wallObserver = null;
+export function watchCaseWall(svg) {
+  if (wallObserver || !('IntersectionObserver' in window)) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let away = false;
+  wallObserver = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) { away = true; svg.classList.remove('cw-on'); return; }
+    if (away) { away = false; requestAnimationFrame(() => svg.classList.add('cw-on')); setTimeout(() => svg.classList.add('cw-on'), 150); }
+  }, { threshold: 0 });
+  wallObserver.observe(svg);
 }
 
 export const HERO_SIZE = { W, H };
