@@ -21,6 +21,7 @@ export const STATIC = {
   s3: ['Choose what to measure', '选一个要测量的东西'],
   s4: ['The answer', '答案'],
   s5: ['Follow the clues', '找线索'],
+  s6: ['Close the case', '结案'],
   catalogTitle: ['Data sources: where every number comes from, and what is missing', '数据来源：每个数字从哪来、缺了什么'],
   stop: ['Stop', '停止'],
 };

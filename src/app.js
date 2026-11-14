@@ -301,8 +301,9 @@ function crossCheck() {
 }
 function renderClues() {
   const box = $('clues');
-  if (!state.site || !result()?.test || $('after')?.hidden !== false) { $('step5').hidden = true; return; }
+  if (!state.site || !result()?.test || $('after')?.hidden !== false) { $('step5').hidden = true; $('step6').hidden = true; return; }
   $('step5').hidden = false;
+  renderReport();
   const v = VAR(state.variable);
   const list = (CLUES[state.site] ?? DEFAULT_CLUES).filter(([id]) => id !== state.variable);
   box.innerHTML = `<p class="hint">${t('This tool answers whether, which way, how much and how sure — not why. A detective’s next step is to collect clues: did other places, or other things, change too?', '这个工具回答"有没有变、往哪变、变多少、有多确定"，不判断原因。侦探的下一步是找线索：别的地方、别的东西有没有一起变？')}</p>
@@ -319,6 +320,84 @@ function renderClues() {
     <div class="card clue"><h3>${t('Clue 3: check against other data', '线索 3：用别的数据核对')}</h3>${crossCheck()}
       <p>${t('These are averages over a region, not readings from one weather station. Before concluding, compare with local station records (for example NOAA Climate Data Online).', '这些是区域平均，不是某个气象站的读数。下结论前，可以和当地气象站记录比一比（例如 NOAA 气候数据在线服务 CDO）。')}</p></div>
   </div>`;
+}
+
+// ---------- step 6: case report ----------
+// Everything the investigation found, on one page the visitor can print or download.
+function reportModel() {
+  const v = VAR(state.variable), r = result(), T = r.test;
+  const q = question(v);
+  const dec = x => `${sign(x * 10, v.dp)} ${v.unit} ${t('per decade', '每十年')}`;
+  const guessText = { up: v.up(), down: v.down(), flat: t('No clear change', '看不出变化'), skip: t('No guess recorded', '没有记录推测') }[state.guess] ?? '—';
+  const station = state.results.T2M_STATION?.[state.site];
+  const conflict = v.id === 'T2M' && station?.test && Math.sign(station.test.slope) !== Math.sign(T.slope);
+  const finding = q.mystery || conflict
+    ? t(`Two sources disagree: the NASA model says ${dec(T.slope)}; the city’s weather station says ${dec(station.test.slope)}.`, `两套数据意见相反：NASA 模型是${dec(T.slope)}；城里的气象站是${dec(station.test.slope)}。`)
+    : r.verdict === 'unsure'
+      ? t(`Not proven. The data moves ${dec(T.slope)}, but the years swing too much to call it a significant trend.`, `证据不足。数据显示${dec(T.slope)}，但年份之间起伏太大，还不能算显著趋势。`)
+      : t(`${verdictWord(v, r.verdict)[0].toUpperCase() + verdictWord(v, r.verdict).slice(1)}: ${dec(T.slope)}, a significant trend.`, `${verdictWord(v, r.verdict)}：${dec(T.slope)}，趋势显著。`);
+  const evidence = [
+    [t('Years', '年份'), `${T.firstYear}–${T.lastYear} (${T.n} ${t('complete years', '个完整年份')})${r.season ? ', ' + seasonLabel(r.season) : ''}`],
+    [t('Rate of change', '变化速度'), dec(T.slope)],
+    [t('Likely range (95%)', '很可能的范围（95%）'), T.ciLow === null ? '—' : `${sign(T.ciLow * 10, v.dp)} … ${sign(T.ciHigh * 10, v.dp)} ${v.unit} ${t('per decade', '每十年')}`],
+    [t('Mann-Kendall test', 'Mann-Kendall 检验'), `p = ${T.p.toPrecision(2)}, q = ${r.q.toPrecision(2)}`],
+    [t('Source', '数据来源'), `${state.data.variables[v.id]?.product ?? v.product} (doi:${state.data.variables[v.id]?.doi ?? '—'})`],
+  ];
+  const checks = [];
+  if (v.id === 'T2M' && station?.test) checks.push(t(`Thermometer (${state.data.series[state.site].T2M_STATION.source.stationName}, NOAA): ${dec(station.test.slope)} — ${conflict ? 'disagrees' : 'agrees'} on direction.`, `温度计（${state.data.series[state.site].T2M_STATION.source.stationName}，NOAA）：${dec(station.test.slope)}，方向${conflict ? '相反' : '一致'}。`));
+  const c = CHECKS[state.variable];
+  if (c && !c.station) {
+    const b = state.results[c.id]?.[state.site];
+    if (b?.test) checks.push(t(`${c.label()}: looks ${b.test.slope > 0 ? 'up' : 'down'} — ${Math.sign(b.test.slope) === Math.sign(T.slope) ? 'agrees' : 'disagrees'} on direction.`, `${c.label()}：看起来${b.test.slope > 0 ? '上升' : '下降'}，方向${Math.sign(b.test.slope) === Math.sign(T.slope) ? '一致' : '相反'}。`));
+  }
+  if (v.id === 'T2M' && r.verdict !== 'unsure' && state.globalRows) {
+    const g = trendTest(state.globalRows.filter(x => x.complete && x.year >= T.firstYear && x.year <= T.lastYear));
+    if (g) checks.push(t(`Global average (NASA GISTEMP): ${sign(g.slope * 10, 2)} °C per decade over the same years.`, `全球平均（NASA GISTEMP）：同期每十年 ${sign(g.slope * 10, 2)} °C。`));
+  }
+  const clues = (CLUES[state.site] ?? DEFAULT_CLUES).filter(([id]) => id !== state.variable).map(([id]) => {
+    const cv = VAR(id), cr = cv.pending ? null : result(state.site, id);
+    const w = verdictWord(cv, cr?.verdict ?? 'unsure');
+    return cr?.test ? `${cv.name()}: ${w[0].toUpperCase() + w.slice(1)} (${sign(cr.test.slope * 10, cv.dp)} ${cv.unit} ${t('per decade', '每十年')}${cr.season ? ', ' + seasonLabel(cr.season) : ''})` : `${cv.name()}: ${cv.pending ? t('data still coming', '数据未到') : t('not enough data', '数据不足')}`;
+  });
+  const open = [];
+  if (q.mystery || conflict) open.push(t('Why do the model and the thermometer disagree? Check local station records and land use around the city.', '为什么模型和温度计意见相反？查当地气象站记录和城市周边的土地利用。'));
+  if (r.verdict === 'unsure') open.push(t('Is there a trend at all? A longer record or another dataset might settle it.', '到底有没有趋势？更长的记录或另一套数据可能就能回答。'));
+  if (T.n < FEW_YEARS) open.push(t(`Only ${T.n} complete years — the result is less stable.`, `只有 ${T.n} 个完整年份，结果不够稳定。`));
+  open.push(t('What caused the change? This tool shows what changed, not why.', '变化的原因是什么？本工具只回答变了什么，不回答为什么。'));
+  const kind = q.mystery || conflict ? 'conflict' : r.verdict === 'unsure' ? 'unproven' : 'confirmed';
+  return { title: q.text, place: siteName(state.site), variable: v.name(), guessText, finding, evidence, checks, clues, open, kind };
+}
+function reportHtml(m) {
+  const li = xs => xs.map(x => `<li>${esc(x)}</li>`).join('');
+  const date = new Date().toISOString().slice(0, 10);
+  return `<article class="report">
+    <header class="rep-head"><div><p class="rep-kicker">${t('TREND DETECTIVE · CASE REPORT', '趋势侦探 · 结案报告')}</p><h3>${esc(m.title)}</h3>
+      <p class="rep-meta">${esc(m.place)} · ${esc(m.variable)} · ${date}</p></div>${stamp(m.kind)}</header>
+    <section><h4>${t('1. Your hypothesis', '1. 你的推测')}</h4><p>${esc(m.guessText)}</p></section>
+    <section><h4>${t('2. What the data says', '2. 数据怎么说')}</h4><p class="rep-finding">${esc(m.finding)}</p>
+      <table>${m.evidence.map(([k, x]) => `<tr><th>${esc(k)}</th><td>${esc(x)}</td></tr>`).join('')}</table></section>
+    ${m.checks.length ? `<section><h4>${t('3. Cross-checks', '3. 交叉核对')}</h4><ul>${li(m.checks)}</ul></section>` : ''}
+    <section><h4>${m.checks.length ? t('4. Clues collected', '4. 收集到的线索') : t('3. Clues collected', '3. 收集到的线索')}</h4><ul>${li(m.clues)}</ul></section>
+    <section><h4>${t('Still open', '尚未解开的疑点')}</h4><ul>${li(m.open)}</ul></section>
+    <footer class="rep-foot">${t('Method: yearly values, Mann-Kendall test with lag-1 autocorrelation correction, Sen slope with 95% interval, Benjamini-Hochberg across 8 cities. Data: NASA Giovanni / POWER, NOAA GHCN-Monthly, NASA GISTEMP.', '方法：年度值；Mann-Kendall 检验（含一阶自相关修正）、Sen 斜率及 95% 区间、8 城市 Benjamini-Hochberg 校正。数据：NASA Giovanni / POWER、NOAA GHCN-Monthly、NASA GISTEMP。')}</footer>
+  </article>`;
+}
+function renderReport() {
+  $('step6').hidden = false;
+  const m = reportModel();
+  $('report').innerHTML = `<p class="hint">${t('Here is everything your investigation found, on one page. Print it, save it as a PDF, or download it to share.', '这是你这次调查的全部发现，汇成一页。可以打印、存成 PDF，或下载后分享。')}</p>
+    ${reportHtml(m)}
+    <div class="hero-actions rep-actions"><button type="button" class="btn" id="printReport">${t('Print or save as PDF', '打印 / 存成 PDF')}</button><button type="button" class="btn btn-soft" id="downloadReport">${t('Download report (HTML)', '下载报告（HTML）')}</button></div>`;
+}
+function downloadReport() {
+  const m = reportModel();
+  const css = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules].map(x => x.cssText); } catch { return []; } }).filter(x => /^(:root|\.report|\.rep-|\.stamp|@keyframes stamp|body)/.test(x) || x.includes('.report') || x.includes('.stamp')).join('\n');
+  const html = `<!doctype html><html lang="${getLang() === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(m.title)} — Trend Detective</title><style>${css}\nbody{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif}</style></head><body>${reportHtml(m)}</body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  a.download = `trend-detective-${state.site}-${state.variable.toLowerCase()}.html`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 // ---------- data catalogue ----------
@@ -362,6 +441,8 @@ function pick({ site, variable, caseId = null, guess = null, scroll = true }) {
 document.addEventListener('click', e => {
   if (e.target.closest('.term')) return;
   if (e.target.closest('#replayBtn')) { runReplay(); return; }
+  if (e.target.closest('#printReport')) { window.print(); return; }
+  if (e.target.closest('#downloadReport')) { downloadReport(); return; }
   const el = e.target.closest('[data-lang],[data-case],[data-topic],[data-ptype],[data-pick],[data-site],[data-var],[data-guess]');
   if (!el || el.disabled) return;
   const d = el.dataset;

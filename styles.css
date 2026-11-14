@@ -277,3 +277,27 @@ body { background: var(--bg); color: var(--ink); }
 .cw-key-t { font-size: 10.5px; fill: var(--ink); }
 .cw-key-n { font-size: 9.5px; fill: var(--muted); }
 .cw-key-sub { font: 400 10px var(--font, inherit); letter-spacing: 0; fill: var(--muted); }
+
+/* Case report */
+.report { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 24px 26px; box-shadow: var(--shadow); max-width: 820px; margin: 0 auto; position: relative; background-image: repeating-linear-gradient(transparent 0 27px, color-mix(in srgb, var(--line) 45%, transparent) 27px 28px); }
+.rep-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 12px; }
+.rep-head h3 { font-family: var(--type); font-size: 1.35rem; margin: 2px 0 4px; }
+.rep-kicker { font-family: var(--type); color: var(--red); letter-spacing: .14em; font-size: .78rem; margin: 0; }
+.rep-meta { color: var(--muted); font-size: .85rem; margin: 0; }
+.rep-head .stamp { position: static; flex: none; animation: none; }
+.report h4 { font-family: var(--type); font-size: .95rem; margin: 14px 0 4px; }
+.report p, .report li { font-size: .95rem; margin: 2px 0; }
+.report ul { margin: 2px 0; padding-left: 20px; }
+.rep-finding { font-weight: 700; }
+.report table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-top: 6px; }
+.report th, .report td { text-align: left; padding: 4px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+.report th { color: var(--muted); font-weight: 600; width: 34%; }
+.rep-foot { margin-top: 14px; font-size: .78rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+.rep-actions { margin-top: 14px; }
+@media (max-width: 600px) { .report { padding: 16px; } .rep-head { flex-direction: column; } }
+@media print {
+  body { background: #fff; }
+  body > *:not(main), main > section:not(#step6), #step6 > .step-title, #step6 .hint, .rep-actions, .tip { display: none !important; }
+  #step6 { display: block !important; padding: 0; }
+  .report { box-shadow: none; border: 0; background-image: none; max-width: none; }
+}
