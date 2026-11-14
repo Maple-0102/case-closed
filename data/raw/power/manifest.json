@@ -1,0 +1,98 @@
+{
+ "api": "https://power.larc.nasa.gov/api/temporal/monthly/point",
+ "parameters": [
+  "T2M",
+  "PRECTOTCORR",
+  "GWETROOT"
+ ],
+ "files": [
+  {
+   "site": "singapore",
+   "file": "data/raw/power/singapore.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=103.8198&latitude=1.3521&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:20+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "ce87bdc63224eb312ca33c0465781bc65b8d1b5d4a0f019463b0444ead428e3b"
+  },
+  {
+   "site": "delhi",
+   "file": "data/raw/power/delhi.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=77.209&latitude=28.6139&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:23+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "3cc903b20812fcf8b2f26ca5d67ff3ef0e3500de83d9fa577455a2dc4159ba91"
+  },
+  {
+   "site": "cairo",
+   "file": "data/raw/power/cairo.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=31.2357&latitude=30.0444&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:28+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "591de824c347e5478e4c92b6accf104a96f9b4c1c2cc01da0b3de8687c407c5b"
+  },
+  {
+   "site": "london",
+   "file": "data/raw/power/london.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=-0.1278&latitude=51.5074&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:32+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "fc65a6c01c25aaa39cb85a6a761787de20154af3d5bf5d750a28da4c39c23cd3"
+  },
+  {
+   "site": "moscow",
+   "file": "data/raw/power/moscow.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=37.6173&latitude=55.7558&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:35+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "11e0652d6e93bb97a678bcb776e6353d7ef97455be3057f5d8d5e8d84913ea48"
+  },
+  {
+   "site": "nuuk",
+   "file": "data/raw/power/nuuk.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=-51.6941&latitude=64.1814&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:38+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "ee4e45e22b9af3f001d24410007fa798ccc95a2bb376682151ebd2acd9da2235"
+  },
+  {
+   "site": "manaus",
+   "file": "data/raw/power/manaus.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=-60.0217&latitude=-3.119&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:42+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "9fc05e05d506cb3682b6343c05ba5fa27a1a79f5b2aed61b842dea25c7e11986"
+  },
+  {
+   "site": "sydney",
+   "file": "data/raw/power/sydney.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&longitude=151.2093&latitude=-33.8688&format=JSON&start=1991&end=2025",
+   "retrieved": "2026-11-14T01:26:45+00:00",
+   "sources": [
+    "MERRA2"
+   ],
+   "apiVersion": "v2.10.0",
+   "sha256": "98fb58fc08018d97e085090e28a352fab2c692d451c3977ae3afe09889115721"
+  }
+ ]
+}
