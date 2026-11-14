@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- Trend Detective. Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trend Detective</title>
+<meta name="description" content="Be a data detective with NASA Earth science data: is it changing, which way, by how much, and how sure are we?">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">◎</span><span data-t="brand"></span></a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button><button type="button" data-lang="zh">中文</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1 data-t="heroTitle"></h1>
+    <p class="lede" data-t="heroLede"></p>
+    <button type="button" class="btn btn-soft" id="tourBtn" data-t="tourBtn"></button>
+  </section>
+
+  <section class="step" id="step1" aria-labelledby="s1">
+    <h2 class="step-title"><span class="num">1</span><span id="s1" data-t="s1"></span></h2>
+    <div class="cases" id="cases"></div>
+    <div class="guide" id="guide"></div>
+  </section>
+
+  <section class="step" id="step2" aria-labelledby="s2">
+    <h2 class="step-title"><span class="num">2</span><span id="s2" data-t="s2"></span></h2>
+    <p class="hint" data-t="s2hint"></p>
+    <div class="card map-card">
+      <svg id="map" viewBox="0 0 960 373" role="img"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="chips" id="places"></div>
+  </section>
+
+  <section class="step" id="step3" aria-labelledby="s3">
+    <h2 class="step-title"><span class="num">3</span><span id="s3" data-t="s3"></span></h2>
+    <div class="vars" id="vars"></div>
+  </section>
+
+  <section class="step" id="step4" aria-labelledby="s4" aria-live="polite">
+    <h2 class="step-title"><span class="num">4</span><span id="s4" data-t="s4"></span></h2>
+    <div id="answer"></div>
+  </section>
+
+  <section class="step" id="step5" aria-labelledby="s5" hidden>
+    <h2 class="step-title"><span class="num">5</span><span id="s5" data-t="s5"></span></h2>
+    <div id="clues"></div>
+  </section>
+
+  <section class="step" id="data" aria-labelledby="s6">
+    <details class="card catalog">
+      <summary id="s6" data-t="catalogTitle"></summary>
+      <div id="catalog"></div>
+    </details>
+  </section>
+</main>
+
+<footer class="wrap foot" id="foot"></footer>
+
+<div class="tour-bar" id="tourBar" hidden>
+  <p id="tourText"></p>
+  <button type="button" class="btn btn-small" id="tourStop" data-t="stop"></button>
+</div>
+
+<script src="vendor/topojson-client.min.js"></script>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

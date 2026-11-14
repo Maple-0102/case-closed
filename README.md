@@ -35,7 +35,19 @@ Giovanni acknowledgement: analyses and visualizations used in this project were 
 
 | Resource | Licence | Used for |
 |---|---|---|
-| _to be filled in_ | | |
+| [world-atlas](https://github.com/topojson/world-atlas) 2.0.2, `land-110m.json` (from [Natural Earth](https://www.naturalearthdata.com/), public domain) | ISC (`vendor/LICENSE-world-atlas`) | Land outlines on the map |
+| [topojson-client](https://github.com/topojson/topojson-client) 3.1.0 | ISC (`vendor/LICENSE-topojson-client`) | Reading the map file |
+| Mann-Kendall test; Sen (1968) slope and confidence interval; Yue & Wang (2004) autocorrelation correction; Benjamini & Hochberg (1995) | Published methods | Trend statistics (`docs/method.md`) |
+| Acklam's inverse normal approximation; Numerical Recipes `erfcc` | Published algorithms | Normal distribution in `src/stats.js` |
+| [pymannkendall](https://github.com/mmhs013/pyMannKendall) and [SciPy](https://scipy.org/) | MIT / BSD-3-Clause | Independent check of our results only (not shipped) |
+
+## Run locally
+
+```sh
+python3 -m http.server 8000      # then open http://localhost:8000
+node --test                       # tests
+python3 -I scripts/build_data.py  # rebuild data/processed/series.json from data/raw
+```
 
 ## Use of Super Intelligence (SI) tools
 
