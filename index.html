@@ -20,9 +20,18 @@
 
 <main class="wrap">
   <section class="hero">
-    <h1 data-t="heroTitle"></h1>
-    <p class="lede" data-t="heroLede"></p>
-    <button type="button" class="btn btn-soft" id="tourBtn" data-t="tourBtn"></button>
+    <div class="case-wall-wrap" id="caseWallWrap">
+      <svg id="caseWall" class="case-wall" viewBox="0 0 960 390" role="img" aria-labelledby="cwTitle"><title id="cwTitle" data-t="cwTitle"></title></svg>
+    </div>
+    <p class="swipe-hint" data-t="swipeHint"></p>
+    <div class="hero-text">
+      <h1 class="type-title" data-t="heroTitle"></h1>
+      <p class="lede" data-t="heroLede"></p>
+      <div class="hero-actions">
+        <button type="button" class="btn" id="openCase" data-t="openCase"></button>
+        <button type="button" class="btn btn-soft" id="tourBtn" data-t="tourBtn"></button>
+      </div>
+    </div>
   </section>
 
   <section class="step" id="step1" aria-labelledby="s1">

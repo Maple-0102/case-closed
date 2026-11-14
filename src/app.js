@@ -8,6 +8,7 @@ import { VARIABLES, CHECKS, VAR } from './variables.js';
 import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js';
 import { chartSvg, replay } from './chart.js';
 import { loadLand, mapSvg } from './map.js';
+import { caseWallSvg, animateCaseWall } from './hero.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -157,7 +158,7 @@ function renderMystery(box, q, r, v) {
   box.innerHTML = `<div class="card answer"><p class="q">${esc(q.text)}</p>
     <p class="cap">${t('Each dot = one year’s average air temperature from the NASA model (°C); thick line = the trend; light fan = the likely range.', '每个点 = NASA 模型给出的一年平均气温（°C）；粗线 = 趋势；浅色扇形 = 很可能的范围。')}</p>
     ${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly model temperature with trend line', '模型每年气温和趋势线')) })}
-    <div class="after" id="after" hidden>${badge}
+    <div class="after" id="after" hidden>${stamp('conflict')}${badge}
       <p class="big unsure">${t('Two sources, two answers', '两套数据，两个答案')}</p>
       <div class="duel">
         <div class="part"><div class="part-q">🛰️ ${t(`NASA model (MERRA-2), 110 km ${term('region', 'region')}`, `NASA 模型（MERRA-2），110 公里${term('region', '区域')}`)}</div><div class="part-a ${dirOf(T)}">${says(T)} ${dirOf(T) === 'up' ? '↗' : '↘'}</div><div class="part-d">${per(T)} · ${sig(T)} · ${T.firstYear}–${T.lastYear}</div></div>
@@ -182,6 +183,16 @@ function globalLine(test) {
     : ratio <= 0.8 ? t('slower than', '比全球慢，全球是')
     : t('at about the same pace as', '和全球差不多，全球是');
   return `<p class="everyday">🌍 ${t(`Compared with the whole planet: ${here} per decade here, ${pace} the global average (${world} per decade, NASA GISTEMP, land and ocean). Land warms faster than the ocean, so many cities change faster than the global average.`, `和整个地球比：这里每十年 ${here}，${pace}每十年 ${world}（NASA GISTEMP，陆地加海洋）。陆地比海洋升温快，所以很多城市比全球平均变得快。`)}</p>`;
+}
+
+// Rubber stamp shown at the reveal: what the evidence supports, not whether the guess was right.
+function stamp(kind) {
+  const label = {
+    confirmed: t('Trend confirmed', '趋势成立'),
+    unproven: t('Not proven', '证据不足'),
+    conflict: t('Conflicting evidence', '证据矛盾'),
+  }[kind];
+  return `<div class="stamp stamp-${kind}" aria-hidden="true">${label}</div>`;
 }
 
 // If the city's weather station trends the other way, say so right under the big answer.
@@ -225,7 +236,7 @@ function renderAnswer() {
   box.innerHTML = `<div class="card answer"><p class="q">${esc(q.text)}</p>${seasonNote}
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${v.unit}); thick line = the trend; light fan = the likely range.`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${v.unit}）；粗线 = 趋势；浅色扇形 = 很可能的范围。`)}</p>
     ${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}
-    <div class="after" id="after" hidden>${badge}
+    <div class="after" id="after" hidden>${stamp(r.verdict === 'unsure' ? 'unproven' : 'confirmed')}${badge}
       <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
       ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
@@ -333,7 +344,14 @@ function renderCatalog() {
 
 // ---------- interaction ----------
 function renderFlow() { renderCases(); renderGuide(); renderMap(); renderVars(); renderAnswer(); }
-function renderAll() { renderStatic(); renderFlow(); renderCatalog(); }
+function renderHero() {
+  const svg = $('caseWall');
+  svg.innerHTML = `<title id="cwTitle">${esc(t(...STATIC.cwTitle))}</title>` + caseWallSvg(state.data, state.results.T2M);
+  animateCaseWall(svg);
+  const wrap = $('caseWallWrap');
+  if (wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) / 2;
+}
+function renderAll() { renderStatic(); renderHero(); renderFlow(); renderCatalog(); }
 function pick({ site, variable, caseId = null, guess = null, scroll = true }) {
   if (site) state.site = site;
   if (variable) state.variable = variable;
@@ -353,6 +371,7 @@ document.addEventListener('click', e => {
   if (d.ptype) { state.ptype = d.ptype; renderGuide(); return; }
   if (d.pick) { const [site, variable] = d.pick.split('|'); pick({ site, variable }); return; }
   if (d.guess) { state.guess = d.guess; renderAnswer(); return; }
+  if (d.hero) { pick({ site: d.site, variable: 'T2M' }); return; }
   if (d.site) { pick({ site: d.site, guess: d.keep ? 'skip' : null, scroll: !d.keep }); return; }
   if (d.var) pick({ variable: d.var, scroll: false });
 });
@@ -399,6 +418,7 @@ function tourStep(i) {
   $('tourText').textContent = s.text();
   state.tour = setTimeout(() => tourStep(i + 1), 4300);
 }
+$('openCase').addEventListener('click', () => $('step1').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('tourBtn').addEventListener('click', () => { stopTour(); $('tourBar').hidden = false; state.tour = -1; tourStep(0); });
 $('tourStop').addEventListener('click', stopTour);
 

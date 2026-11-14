@@ -5,6 +5,23 @@ const W = 960, TOP = 80, BOTTOM = -60, K = W / 360;
 const px = (lon, lat) => [(lon + 180) * K, (TOP - lat) * K];
 
 let landD = '';
+let landRings = [];
+// Land outline in any projection (used by the hero case wall).
+// Rings that cross the 180° meridian are split there, so no line is drawn across the map.
+function ringPath(ring, project) {
+  let d = '', prev = null, broken = false;
+  ring.forEach(([lon, lat], i) => {
+    const jump = prev !== null && Math.abs(lon - prev) > 180;
+    if (jump) broken = true;
+    const [x, y] = project(lon, lat);
+    d += `${i === 0 || jump ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    prev = lon;
+  });
+  return broken ? d : d + 'Z';
+}
+export function landPath(project) {
+  return landRings.map(r => ringPath(r, project)).join('');
+}
 export async function loadLand() {
   try {
     const topo = await (await fetch('vendor/land-110m.json')).json();
@@ -15,7 +32,8 @@ export async function loadLand() {
       const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
       polys.forEach(p => p.forEach(r => rings.push(r)));
     });
-    landD = rings.map(r => r.map(([lon, lat], i) => { const [x, y] = px(lon, lat); return `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`; }).join('') + 'Z').join('');
+    landRings = rings;
+    landD = rings.map(r => ringPath(r, px)).join('');
   } catch { landD = ''; }
 }
 
