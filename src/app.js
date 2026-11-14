@@ -193,7 +193,7 @@ function renderMystery(box, q, r, v) {
   const mine = { up: v.up(), down: v.down(), flat: t('No clear change', '看不出变化') }[state.guess];
   const dirOf = x => (x.slope > 0 ? 'up' : 'down');
   const badge = state.guess === 'skip' ? '' : `<p class="badge ${guessed === dirOf(T) || guessed === dirOf(ST) ? 'ok' : 'miss'}">🔎 ${t(`You guessed “${mine}”. The model ${guessed === dirOf(T) ? 'agrees' : 'disagrees'}; the thermometer ${guessed === dirOf(ST) ? 'agrees' : 'disagrees'}.`, `你猜的是"${mine}"。模型${guessed === dirOf(T) ? '同意' : '不同意'}；温度计${guessed === dirOf(ST) ? '同意' : '不同意'}。`)}</p>`;
-  box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>
+  box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>${briefNote(q)}
     <p class="cap">${t('Each dot = one year’s average air temperature from the NASA model (°C); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).', '每个点 = NASA 模型给出的一年平均气温（°C）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。')}</p>
     <div id="mainChart">${chartSvg(r.rows, r.test, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly model temperature with trend line', '模型每年气温和趋势线')) })}</div>
     <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp('conflict')}</div>${badge}
@@ -350,6 +350,7 @@ function ticket() {
     <button type="button" class="ticket-btn" data-goto="step2">📍 ${esc(siteName(state.site))} <u>${t('change place ↑', '换地点 ↑')}</u></button>
     <button type="button" class="ticket-btn" data-goto="step3">${v.icon} ${esc(v.name())} <u>${t('change what to measure ↑', '换测量对象 ↑')}</u></button></div>`;
 }
+const briefNote = q => (q.brief ? `<p class="brief">📝 <b>${t('Case brief:', '案情简介：')}</b> ${esc(q.brief)}</p>` : '');
 function detectiveNote(q) {
   return q.note ? `<div class="det-note"><h3>🕵️ ${t('Detective’s note', '侦探笔记')}</h3><p>${esc(q.note)}</p></div>` : '';
 }
@@ -372,7 +373,7 @@ function renderAnswer() {
     : fewNote ? `<p class="note">⚠️${fewNote}</p>` : '';
   if (!state.guess) {
     const opts = [['up', '↗', v.up()], ['down', '↘', v.down()], ['flat', '〰', t('No clear change', '看不出变化')]];
-    box.innerHTML = `<div class="card answer guess">${ticket()}<p class="q">${esc(q.text)}</p>${q.brief ? `<p class="brief">📝 <b>${t('Case brief:', '案情简介：')}</b> ${esc(q.brief)}</p>` : ''}<p class="guess-lead">${t('Make a guess first!', '先猜一猜！')}</p>
+    box.innerHTML = `<div class="card answer guess">${ticket()}<p class="q">${esc(q.text)}</p>${briefNote(q)}<p class="guess-lead">${t('Make a guess first!', '先猜一猜！')}</p>
       <p class="hint">${t(`From ${T.firstYear} to ${T.lastYear}, the ${r.season ? seasonLabel(r.season) + ' ' : ''}${v.short()} in ${shortSite(state.site)}…`, `从 ${T.firstYear} 年到 ${T.lastYear} 年，${shortSite(state.site)}${r.season ? `每年 ${seasonLabel(r.season)} ` : ''}的${v.short()}……`)}</p>
       <div class="guess-opts">${opts.map(([id, icon, label]) => `<button type="button" class="guess-btn" data-guess="${id}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join('')}</div>
       <button type="button" class="link-btn" data-guess="skip">${t('Skip — just show me', '跳过，直接看答案')}</button></div>`;
@@ -385,7 +386,7 @@ function renderAnswer() {
     ? `<p class="badge ok">🎯 ${t(`You got it! You guessed “${mine}”.`, `猜对了！你猜的是"${mine}"。`)}</p>`
     : `<p class="badge miss">😮 ${t(`Surprise! You guessed “${mine}”.`, `出乎意料！你猜的是"${mine}"。`)}</p>`;
   const via = t(`${viaName(state.data.series[state.site][v.id].source.via)}, ${term('region', 'region')} average`, `${viaName(state.data.series[state.site][v.id].source.via)}，${term('region', '区域')}平均`);
-  box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>${seasonNote}
+  box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>${briefNote(q)}${seasonNote}
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${unitTerm(v)}); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${unitTerm(v)}）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。`)}</p>
     <div id="mainChart">${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}</div>
     <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp(r.verdict === 'unsure' ? 'unproven' : 'confirmed')}</div>${badge}
@@ -674,8 +675,9 @@ document.addEventListener('focusin', e => { const x = e.target.closest('.term');
 document.addEventListener('focusout', e => { if (e.target.closest('.term')) hideTip(); });
 document.addEventListener('click', e => { const x = e.target.closest('.term'); if (x) showTip(x); else hideTip(); });
 
-// ---------- 30-second guided example (7 steps x 4.3 s) ----------
-// About 30 seconds: one mystery (New Delhi), then one trick to catch (Cairo haze + slider).
+// ---------- 30-second guided example (8 steps) ----------
+// About 30 seconds: the case wall, one mystery (New Delhi), one trick to catch (Cairo haze +
+// slider), the detective's note and the case report, then back to the ways in.
 // Drag the start year step by step so the viewer sees the stamp change.
 function tourDrag(to) {
   const c = checkFor();
@@ -683,15 +685,16 @@ function tourDrag(to) {
   const starts = c.windows.map(w => w.start).filter(y => y <= to);
   starts.forEach((y, k) => { state.tourDrag.push(setTimeout(() => { if (state.tour === null) return; state.win = y; updateStartYear(true); }, 250 + k * 220)); });
 }
+const later = (ms, fn) => state.tourDrag.push(setTimeout(() => { if (state.tour !== null) fn(); }, ms));
 const TOUR = [
-  { el: 'step1', text: () => t('A detective starts with a question. Case 1: is New Delhi warming or cooling? We use NASA satellite and model data.', '侦探从一个问题开始。案子 1：新德里在变暖，还是在变冷？证据是 NASA 的卫星和模型数据。'), act: () => pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }) },
-  { el: 'step4', text: () => t('Guess first! Most places are warming, so we guess “got warmer”… and replay 35 years.', '先猜！大多数地方在变暖，我们猜"变暖了"……然后回放 35 年。'), act: () => { state.guess = 'up'; renderAnswer(); } },
-  { el: 'step4', text: () => t('Twist: the model looks like cooling, the city’s thermometer looks like warming, and neither is proven. Case open.', '反转：模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。案子没结。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
-  { el: 'step5', text: () => t('A lead: less sunlight is reaching the ground here, a significant drop.', '一条线索：这里照到地面的阳光在显著减少。'), act: () => document.querySelector('#clues .recs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
-  { el: 'step4', text: () => t('Case 2: is Cairo’s air getting cleaner? Over all the years, the satellite says: not proven.', '案子 2：开罗的空气变干净了吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', guess: 'skip', scroll: false }); state.tourDrag.push(setTimeout(() => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350)); }, noScroll: true },
+  { el: 'caseWallWrap', text: () => t('Welcome, detective. Each card is a city with 35 years of NASA temperature data, pinned to one question: is Earth changing?', '欢迎你，侦探。每张卡片是一座城市和它 35 年的 NASA 气温数据，都钉在同一个问题上：地球在变吗？'), act: () => window.scrollTo({ top: 0, behavior: 'smooth' }), noScroll: true, ms: 3400 },
+  { el: 'step4', text: () => t('Case 1: New Delhi. Read the case brief, then guess first. We say “got warmer”… and replay 35 years.', '案子 1：新德里。先读案情简介，再猜。我们猜"变暖了"……然后回放 35 年。'), act: () => { pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }); $('step4').scrollIntoView({ behavior: 'smooth', block: 'start' }); later(1900, () => { state.guess = 'up'; renderAnswer(); }); }, noScroll: true, ms: 4600 },
+  { el: 'step4', text: () => t('Twist: NASA’s model looks like cooling, the city’s thermometer looks like warming, and neither is proven. Case open.', '反转：NASA 模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。案子没结。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3600 },
+  { el: 'step4', text: () => t('Case 2: is Cairo’s air getting cleaner? Over all the years, the satellite says: not proven.', '案子 2：开罗的空气变干净了吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', caseId: 'cairohaze', guess: 'skip', scroll: false }); later(350, () => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }, noScroll: true, ms: 3400 },
   { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 5000 },
-  { el: 'robust', text: () => t('Gotcha! Picking the years that fit is how people get fooled. The verdict stays: not proven.', '抓到了！只挑符合说法的年份，就是被骗的套路。结论不变：证据不足。'), act: () => $('robust')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true },
-  { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 4000 },
+  { el: 'step4', text: () => t('Gotcha! Picking the years that fit is how people get fooled. Every case ends with a detective’s note like this one.', '抓到了！只挑符合说法的年份，就是被骗的套路。每个案子最后都有一段这样的侦探笔记。'), act: () => document.querySelector('#answer .det-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3600 },
+  { el: 'step6', text: () => t('Close the case: one page with your guess, the evidence and the clues, to print or share.', '结案：一页纸写下你的推测、证据和线索，可以打印或分享。'), act: () => $('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), noScroll: true, ms: 3400 },
+  { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 3800 },
 ];
 function stopTour() { clearTimeout(state.tour); state.tourDrag.forEach(clearTimeout); state.tourDrag = []; state.tour = null; $('tourBar').hidden = true; document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
 function tourStep(i) {
