@@ -343,12 +343,7 @@ body { background: var(--bg); color: var(--ink); }
 .stamp-window { border-style: double; border-width: 4px; }
 .after .parts, .after .duel { clear: both; }
 
-/* Home: point to the cases, and say when data is loading */
-.scroll-cue { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-family: var(--type); font-weight: 700; color: var(--red); text-decoration: none; border-bottom: 2px dashed currentColor; padding-bottom: 2px; }
-.scroll-cue span { display: inline-block; animation: cueBob 1.6s ease-in-out infinite; }
-.scroll-cue:hover { border-bottom-style: solid; }
-@keyframes cueBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
-@media (prefers-reduced-motion: reduce) { .scroll-cue span { animation: none; } }
+/* Home: say when data is loading */
 .load-status { margin: 12px 0 0; color: var(--muted); font-style: italic; }
 .load-status.error { color: var(--red); font-style: normal; }
 
@@ -408,25 +403,6 @@ body { background: var(--bg); color: var(--ink); }
 .ticket-btn u { font-weight: 400; font-size: .8rem; color: var(--red); font-family: var(--type); text-decoration: underline dotted; }
 .ticket-btn:hover { border-color: var(--red); }
 .now { margin: -6px 0 10px; font-size: .92rem; }
-/* Mini locator map in the "Your case" ticket */
-.ticket { align-items: stretch; gap: 14px; }
-.mini-wrap { flex: 0 0 230px; }
-.mini-map { width: 100%; height: auto; display: block; background: var(--sea); border-radius: 8px; border: 1px solid var(--line); }
-.mini-map .land { fill: var(--land); }
-.mini-map .pin { cursor: pointer; }
-.mini-map .pin .d { stroke: var(--panel); stroke-width: 7; }
-.mini-map .pin.up .d { fill: var(--up); } .mini-map .pin.down .d { fill: var(--down); } .mini-map .pin.unsure .d { fill: var(--unsure); }
-.mini-map .pin.na .d { fill: var(--panel); stroke: var(--unsure); }
-.mini-map .pin .ring { fill: none; stroke: var(--ink); stroke-width: 8; opacity: 0; }
-.mini-map .pin.on .ring { opacity: 1; }
-.mini-map .pin:hover .d { stroke: var(--ink); }
-.mini-cap { margin: 4px 0 0; font-family: var(--type); font-size: .78rem; color: var(--red); }
-.ticket-body { flex: 1 1 260px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
-.ticket-row { display: flex; flex-wrap: wrap; gap: 8px; }
-@media (max-width: 600px) { .mini-wrap { flex-basis: 100%; } }
-.mini-wrap { flex-basis: 280px; }
-.ticket-body { align-items: flex-start; }
-.mini-map .land { fill: color-mix(in srgb, var(--land) 85%, var(--ink)); }
 
 /* Step 2 holds both choices: place, then what to measure */
 .pick-part { padding: 4px 0 6px; border-radius: 14px; }
@@ -511,3 +487,4 @@ body { background: var(--bg); color: var(--ink); }
 .entry:not(#tourBtn):hover, .entry:not(#tourBtn):focus-visible { background: var(--ink); color: var(--panel); box-shadow: inset 0 0 0 2px var(--ink); }
 #tourBtn.entry:hover, #tourBtn.entry:focus-visible { background: var(--red); }
 #heroActions.flash { animation: flash 1.6s ease-out 2; border-radius: 8px; }
+@media (max-width: 600px) { .ticket-btn { width: 100%; justify-content: space-between; text-align: left; } }

@@ -41,20 +41,17 @@ export async function loadLand() {
 }
 
 // sites: [{id, lon, lat, label, cls, on}]
-// opts.mini: small locator map (bigger dots, no labels, no grid) for the answer's case ticket.
-export function mapSvg(sites, opts = {}) {
-  const mini = !!opts.mini;
+export function mapSvg(sites) {
   let s = '';
-  if (!mini) for (let lon = -150; lon <= 150; lon += 30) { const [x] = px(lon, 0); s += `<line class="grat" x1="${x}" x2="${x}" y1="0" y2="${(TOP - BOTTOM) * K}"/>`; }
-  if (!mini) for (let lat = -60; lat <= 80; lat += 20) { const [, y] = px(0, lat); s += `<line class="grat" x1="0" x2="${W}" y1="${y}" y2="${y}"/>`; }
+  for (let lon = -150; lon <= 150; lon += 30) { const [x] = px(lon, 0); s += `<line class="grat" x1="${x}" x2="${x}" y1="0" y2="${(TOP - BOTTOM) * K}"/>`; }
+  for (let lat = -60; lat <= 80; lat += 20) { const [, y] = px(0, lat); s += `<line class="grat" x1="0" x2="${W}" y1="${y}" y2="${y}"/>`; }
   if (landD) s += `<path class="land" d="${landD}"/>`;
   sites.forEach(p => {
     const [x, y] = px(p.lon, p.lat);
     const right = x < W - 150;
-    const rd = mini ? 26 : 8, rr = mini ? 44 : 13;
     s += `<g class="pin ${p.cls}${p.on ? ' on' : ''}" data-site="${p.id}" tabindex="0" role="button" aria-label="${p.label}"><title>${p.label}</title>
-      <circle class="ring" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr}"/><circle class="d" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rd}"/>
-      ${mini ? '' : `<text x="${(right ? x + 14 : x - 14).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="${right ? 'start' : 'end'}">${p.label}</text>`}</g>`;
+      <circle class="ring" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13"/><circle class="d" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8"/>
+      <text x="${(right ? x + 14 : x - 14).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="${right ? 'start' : 'end'}">${p.label}</text></g>`;
   });
   return s;
 }
