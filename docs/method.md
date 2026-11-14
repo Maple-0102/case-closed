@@ -8,6 +8,12 @@ Written with help from Claude (Anthropic) as a coding assistant; reviewed by the
 - Nothing is gap-filled.
 - Satellite aerosol (MODIS) has seasonal gaps (dark winters, cloudy rainy seasons). Where a place has fewer than 10 complete years, we use only the calendar months observed in at least 5 of every 6 years and average those months, in years where all of them are present. The page says which months were used.
 
+## Plant greenness (MODIS NDVI via AppEEARS)
+- MOD13A3 v6.1 monthly 1 km NDVI, requested from NASA AppEEARS as an area sample over the same 1° × 1° boxes (request submitted 14 November 2026 09:25 SGT, completed 15:58 SGT). We use AppEEARS's per-month area statistics (`MOD13A3-061-Statistics.csv`, the mean of all non-fill pixels).
+- That mean includes cloudy and snow-covered pixels, so each month is checked against the pixel-reliability statistics: a month is used only if at least 80% of the box's pixels are good or marginal quality (reliability 0 or 1). Other months are set to missing and never corrected.
+- Yearly values then follow the same rules as satellite haze: all 12 months if there are at least 10 such years, otherwise only the calendar months observed in at least 5 of every 6 years (Moscow April–October, Nuuk July–September, Manaus April–October and December). Singapore is cloudy in too many months to test.
+- Result (14 November 2026): none of the 7 testable cities shows a trend that survives the correction for testing eight places. London, Sydney and New Delhi have p < 0.05 on their own but q ≈ 0.10.
+
 ## Trend test (`src/stats.js`)
 - **Mann-Kendall test** (two-sided, α = 0.05) with the standard correction for tied values.
 - **Sen's slope** (median of all pairwise slopes, using the real gap between years) and its 95% confidence interval (Sen 1968), with ranks interpolated linearly.

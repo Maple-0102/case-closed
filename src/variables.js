@@ -35,9 +35,11 @@ export const VARIABLES = [
     def: () => t('How much dust, smoke and pollution is in the air, measured by how much sunlight it blocks (0.1 clear, above 1 very hazy).', '空气里的灰尘、烟和污染颗粒有多少，用它们挡住多少阳光来衡量（0.1 清澈，1 以上很浑浊）。'),
     up: () => t('More haze', '雾霾变多了'), down: () => t('Less haze', '雾霾变少了'),
     goingUp: () => t('haze is increasing', '雾霾在变多'), goingDown: () => t('haze is decreasing', '雾霾在变少') },
-  { id: 'NDVI', topic: 'plant', icon: '🌱', kind: 'satellite', product: 'MODIS MOD13A3', pending: true,
+  { id: 'NDVI', topic: 'plant', icon: '🌱', kind: 'satellite', product: 'MODIS Terra', unit: 'NDVI', dp: 3, annual: 'mean', seasonal: true,
     name: () => t('Plant greenness', '植被绿度'), short: () => t('plant greenness', '植被绿度'),
-    def: () => t('How green the ground looks from space: higher means more, healthier plants.', '从太空看地面有多绿：数值越高，植物越茂盛。') },
+    def: () => t('How green the ground looks from space (NDVI): about 0.1 for bare ground or city, 0.8 for thick forest. Cloudy or snowy months are left out.', '从太空看地面有多绿（NDVI）：裸地或城市约 0.1，茂密森林约 0.8。多云或积雪的月份不计入。'),
+    up: () => t('Got greener', '变绿了'), down: () => t('Got less green', '变黄了'),
+    goingUp: () => t('it’s getting greener', '在变绿'), goingDown: () => t('it’s getting less green', '绿色在减少') },
 ];
 
 // Second datasets used only to cross-check a main variable (clue 3).

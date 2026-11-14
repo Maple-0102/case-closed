@@ -15,7 +15,13 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const sign = (v, dp) => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(Math.max(0, dp));
 const term = (key, text) => `<span class="term" tabindex="0" data-term="${key}">${text}</span>`;
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const seasonLabel = m => (m ? t(`${MON[m[0] - 1]}–${MON[m[m.length - 1] - 1]}`, `${m[0]}–${m[m.length - 1]} 月`) : '');
+// Calendar months as runs, e.g. [4..10, 12] -> "Apr–Oct, Dec" (never hides a skipped month).
+const seasonLabel = m => {
+  if (!m) return '';
+  const runs = [];
+  m.forEach(x => { const last = runs[runs.length - 1]; if (last && x === last[1] + 1) last[1] = x; else runs.push([x, x]); });
+  return runs.map(([a, b]) => (a === b ? t(MON[a - 1], `${a} 月`) : t(`${MON[a - 1]}–${MON[b - 1]}`, `${a}–${b} 月`))).join(t(', ', '、'));
+};
 
 // Fewer usable years than this gets an explicit "less stable" note.
 const FEW_YEARS = 20;
@@ -39,8 +45,8 @@ function renderStatic() {
   document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(...STATIC[el.dataset.t]); });
   document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === getLang())));
   $('foot').innerHTML = t(
-    'Data: NASA Giovanni (MERRA-2, MODIS, GPM IMERG; ~1° × 1° area averages) and NASA POWER, downloaded 14 November 2026. Analyses and visualizations used in this project were produced with the Giovanni online data system, developed and maintained by the NASA GES DISC. Map: Natural Earth via world-atlas (ISC). Code: MIT licence. Built with help from Claude, an AI assistant (see README).',
-    '数据：NASA Giovanni（MERRA-2、MODIS、GPM IMERG；约 1°×1° 区域平均）与 NASA POWER，2026 年 11 月 14 日下载。本项目的分析与可视化使用了 NASA GES DISC 开发维护的 Giovanni 在线数据系统。地图：Natural Earth（world-atlas，ISC 许可）。代码：MIT 许可。开发中使用了 AI 助手 Claude（见 README）。');
+    'Data: NASA Giovanni (MERRA-2, MODIS, GPM IMERG; ~1° × 1° area averages), NASA AppEEARS (MODIS NDVI) and NASA POWER, downloaded 14 November 2026. Analyses and visualizations used in this project were produced with the Giovanni online data system, developed and maintained by the NASA GES DISC. Map: Natural Earth via world-atlas (ISC). Code: MIT licence. Built with help from Claude, an AI assistant (see README).',
+    '数据：NASA Giovanni（MERRA-2、MODIS、GPM IMERG；约 1°×1° 区域平均）、NASA AppEEARS（MODIS 植被指数）与 NASA POWER，2026 年 11 月 14 日下载。本项目的分析与可视化使用了 NASA GES DISC 开发维护的 Giovanni 在线数据系统。地图：Natural Earth（world-atlas，ISC 许可）。代码：MIT 许可。开发中使用了 AI 助手 Claude（见 README）。');
 }
 
 // ---------- step 1: cases and guiding questions ----------
@@ -48,6 +54,7 @@ function renderCases() {
   $('cases').innerHTML = CASES.map(c => `<button type="button" class="case${state.caseId === c.id ? ' on' : ''}" data-case="${c.id}">
     <span class="tag">${t('Case', '案例')}</span><strong>${esc(c.title())}</strong><small>${esc(c.sub())}</small></button>`).join('');
 }
+const viaName = via => (via.includes('Giovanni') ? 'NASA Giovanni' : via.includes('AppEEARS') ? 'NASA AppEEARS' : 'NASA POWER');
 const srcLabel = v => (v.kind === 'satellite' ? term('satellite', t('Satellite', '卫星')) : term('model', t('Model', '模型'))) + ' ' + esc(v.product);
 function renderGuide() {
   const chip = (attr, id, on, label) => `<button type="button" class="chip${on ? ' on' : ''}" ${attr}="${id}">${label}</button>`;
@@ -319,14 +326,16 @@ function renderAnswer() {
   if (!state.site) { box.innerHTML = `<div class="card answer"><p class="q">${t('Pick a case, answer the two questions, or click a place on the map.', '先选一个案例、回答两个问题，或者在地图上点一个地点。')}</p></div>`; return; }
   const v = VAR(state.variable), r = result();
   if (!r?.test) {
-    box.innerHTML = `<div class="card answer"><p class="q">${t(`Not enough ${v.short()} data for ${siteName(state.site)}`, `${siteName(state.site)}的${v.short()}数据不够`)}${state.site === 'nuuk' && v.id === 'SOIL' ? t(': the area is mostly ice and snow.', '：这里大多是冰雪。') : t(' to test a trend.', '，无法做趋势检验。')} ${t('Try another place or variable.', '换一个地点或变量试试。')}</p></div>`;
+    box.innerHTML = `<div class="card answer"><p class="q">${t(`Not enough ${v.short()} data for ${siteName(state.site)}`, `${siteName(state.site)}的${v.short()}数据不够`)}${state.site === 'nuuk' && v.id === 'SOIL' ? t(': the area is mostly ice and snow.', '：这里大多是冰雪。') : v.id === 'NDVI' ? t(': clouds cover this area in most months, so the satellite rarely gets a clean look at the ground. We leave cloudy months out instead of guessing.', '：这里大多数月份都被云遮住，卫星很少能看清地面。我们把多云的月份排除掉，而不是去猜。') : t(' to test a trend.', '，无法做趋势检验。')} ${t('Try another place or variable.', '换一个地点或变量试试。')}</p></div>`;
     return;
   }
   const q = question(v), T = r.test;
   const span = T.lastYear - T.firstYear + 1;
   const fewNote = T.n < FEW_YEARS ? ` ${t(`Only ${T.n} of the ${span} years from ${T.firstYear} to ${T.lastYear} have complete data, so this result is less stable than one built on a long, unbroken record.`, `${T.firstYear}–${T.lastYear} 年的 ${span} 年里只有 ${T.n} 年数据完整，所以这个结果不如长期连续记录那样稳定。`)}` : '';
   const seasonNote = r.season
-    ? `<p class="note">🛰️ ${t(`In some months here (dark winters or cloudy rainy seasons) the satellite cannot see the ground, so we compare only the ${seasonLabel(r.season)} average each year. Missing months are never filled in.`, `这里有些月份（冬季太暗或雨季云多）卫星看不到地面，所以只比较每年 ${seasonLabel(r.season)} 的平均。缺的月份不补值。`)}${fewNote}</p>`
+    ? `<p class="note">🛰️ ${v.id === 'NDVI'
+      ? t(`In some months here snow or thick cloud hides the plants, so we compare only the ${seasonLabel(r.season)} average each year, when the ground can be seen. Missing months are never filled in.`, `这里有些月份被积雪或厚云遮住，看不到植物，所以只比较每年 ${seasonLabel(r.season)}（看得清地面的月份）的平均。缺的月份不补值。`)
+      : t(`In some months here (dark winters or cloudy rainy seasons) the satellite cannot see the ground, so we compare only the ${seasonLabel(r.season)} average each year. Missing months are never filled in.`, `这里有些月份（冬季太暗或雨季云多）卫星看不到地面，所以只比较每年 ${seasonLabel(r.season)} 的平均。缺的月份不补值。`)}${fewNote}</p>`
     : fewNote ? `<p class="note">⚠️${fewNote}</p>` : '';
   if (!state.guess) {
     const opts = [['up', '↗', v.up()], ['down', '↘', v.down()], ['flat', '〰', t('No clear change', '看不出变化')]];
@@ -342,7 +351,7 @@ function renderAnswer() {
   const badge = state.guess === 'skip' ? '' : state.guess === truth
     ? `<p class="badge ok">🎯 ${t(`You got it! You guessed “${mine}”.`, `猜对了！你猜的是"${mine}"。`)}</p>`
     : `<p class="badge miss">😮 ${t(`Surprise! You guessed “${mine}”.`, `出乎意料！你猜的是"${mine}"。`)}</p>`;
-  const via = t(`${state.data.series[state.site][v.id].source.via.includes('Giovanni') ? 'NASA Giovanni' : 'NASA POWER'}, ${term('region', 'region')} average`, `${state.data.series[state.site][v.id].source.via.includes('Giovanni') ? 'NASA Giovanni' : 'NASA POWER'}，${term('region', '区域')}平均`);
+  const via = t(`${viaName(state.data.series[state.site][v.id].source.via)}, ${term('region', 'region')} average`, `${viaName(state.data.series[state.site][v.id].source.via)}，${term('region', '区域')}平均`);
   box.innerHTML = `<div class="card answer"><p class="q">${esc(q.text)}</p>${seasonNote}
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${v.unit}); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${v.unit}）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。`)}</p>
     <div id="mainChart">${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}</div>
@@ -539,8 +548,8 @@ function renderCatalog() {
     return `<tr><th>${esc(name)}</th><td>${product}</td><td>${any ? `${any.start.slice(0, 4)}–${any.end.slice(0, 4)}` : '—'}</td><td>${tested} / 8</td><td>${gaps.length ? esc(gaps.join(', ')) : t('none', '无')}${seasons.length ? `<br><small>${t('Observable months only:', '只用看得清的月份：')} ${esc(seasons.join(', '))}</small>` : ''}</td></tr>`;
   }).join('');
   $('catalog').innerHTML = `<div class="table-scroll"><table><thead><tr><th>${t('Variable', '变量')}</th><th>${t('Product', '产品')}</th><th>${t('Years', '年份')}</th><th>${t('Places tested', '可检验地点')}</th><th>${t('Missing months', '缺测月数')}</th></tr></thead><tbody>${rows}
-    <tr><th>${t('Plant greenness', '植被绿度')}</th><td>MODIS MOD13A3 v6.1<br><a href="https://doi.org/10.5067/MODIS/MOD13A3.061" target="_blank" rel="noopener">doi:10.5067/MODIS/MOD13A3.061</a></td><td>2000–2025</td><td>—</td><td>${t('Requested from NASA AppEEARS; coming soon', '已向 NASA AppEEARS 申请，即将加入')}</td></tr></tbody></table></div>
-    <p class="cap">${t('Region = 1° × 1° box around each city (Giovanni area average). A year counts only if all its months have data; gaps are never filled. Satellite haze gaps come from dark winters and cloudy seasons.', '区域 = 每个城市周围 1°×1° 的方框（Giovanni 区域平均）。一年里所有月份都有数据才算一年；不补值。卫星雾霾的缺测来自冬季昏暗和多云季节。')}</p>`;
+    </tbody></table></div>
+    <p class="cap">${t('Region = 1° × 1° box around each city (Giovanni area average). A year counts only if all its months have data; gaps are never filled. Satellite haze gaps come from dark winters and cloudy seasons. Plant greenness (NASA AppEEARS statistics over the same boxes) leaves out any month where more than 20% of the area is cloudy or snowy.', '区域 = 每个城市周围 1°×1° 的方框（Giovanni 区域平均）。一年里所有月份都有数据才算一年；不补值。植被绿度（NASA AppEEARS 对同一方框的统计）中，凡是超过 20% 面积被云或雪遮住的月份都不计入。卫星雾霾的缺测来自冬季昏暗和多云季节。')}</p>`;
 }
 
 // ---------- interaction ----------

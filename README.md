@@ -26,7 +26,7 @@ All Giovanni series are area averages over a 1° × 1° box centred on each city
 | Aerosol optical depth (satellite, Terra) | MODIS MOD08_M3 v6.1, AOD 550 nm DT+DB ([10.5067/MODIS/MOD08_M3.061](https://doi.org/10.5067/MODIS/MOD08_M3.061)) | NASA Giovanni | 2001–2025 | Independent haze check |
 | Aerosol optical depth (satellite, Aqua) | MODIS MYD08_M3 v6.1, AOD 550 nm DT+DB ([10.5067/MODIS/MYD08_M3.061](https://doi.org/10.5067/MODIS/MYD08_M3.061)) | NASA Giovanni | 2002-07–2025 | Cross-check of Terra |
 | Rain (satellite) | GPM IMERG Final V07 monthly, GPM_3IMERGM ([10.5067/GPM/IMERG/3B-MONTH/07](https://doi.org/10.5067/GPM/IMERG/3B-MONTH/07)) | NASA Giovanni | 1998–2024 | Independent rain check |
-| Vegetation (NDVI) | MODIS MOD13A3 v6.1 ([10.5067/MODIS/MOD13A3.061](https://doi.org/10.5067/MODIS/MOD13A3.061)) | NASA AppEEARS | 2000–2025 | Plant clue (request pending) |
+| Vegetation (NDVI) | MODIS MOD13A3 v6.1 ([10.5067/MODIS/MOD13A3.061](https://doi.org/10.5067/MODIS/MOD13A3.061)) | NASA AppEEARS area statistics, downloaded 14 November 2026 | 2000–2025 | Plant greenness; months with more than 20% cloud or snow are left out |
 | Global temperature (for comparison) | NASA GISS GISTEMP v4, global land-ocean index ([data.giss.nasa.gov/gistemp](https://data.giss.nasa.gov/gistemp/)) | `GLB.Ts+dSST.csv` | 1991–2025 | City vs global average |
 | T2M, PRECTOTCORR, GWETROOT (grid cell) | NASA POWER Monthly API v2.10.0 (MERRA-2) | power.larc.nasa.gov | 1991–2025 | Cross-check of the area averages |
 
