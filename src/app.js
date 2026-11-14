@@ -238,6 +238,11 @@ function stamp(kind, sub = '') {
 }
 
 // If the city's weather station trends the other way, say so right under the big answer.
+// Known fragile result (docs/method.md): Manaus greenness changes sign with the cloud filter.
+function fragileNote(v) {
+  if (v.id === 'NDVI' && state.site === 'manaus') return `<p class="note">⚠️ ${t('Sensitive to the cloud filter: here the direction of the trend changes when cloudy months are filtered more or less strictly, so do not read the direction at all.', '对云量筛选很敏感：这里的趋势方向会随着多云月份筛选的松紧而改变，所以连方向都不要解读。')}</p>`;
+  return '';
+}
 function stationWarning(r, v) {
   if (v.id !== 'T2M') return '';
   const pair = stationPair(r);
@@ -266,8 +271,8 @@ function startYearText(c, r, v) {
   const rise = c.direction === 'up';
   if (!mainSig && c.nSig > 0) {
     const flips = c.kind === 'direction-changes';
-    return t(`Gotcha — this is how people get fooled. Pick just the right start year and it looks proven: ${c.nSig} of the ${K} start years would earn a “Trend supported” stamp. But take all the years and the case falls apart.${flips ? ' Move the start a little and the story even reverses.' : ''} Choosing only the years that fit your story is exactly the trick a detective has to catch. Verdict stays: not proven. (Trend from ${range}.)`,
-      `抓到了，这就是被骗的套路。只要挑对起点，看起来就像证实了：${K} 个起点里有 ${c.nSig} 个能拿到"趋势有证据支持"的章。可把所有年份放在一起，这个案子就站不住了。${flips ? '起点稍微挪一挪，故事甚至会反过来。' : ''}只挑符合自己说法的年份，正是侦探要拆穿的把戏。结论不变：证据不足。（趋势在${range}之间。）`);
+    return t(`Watch the years. ${c.nSig} of the ${K} start years would earn a “Trend supported” stamp on their own, so a change in those years is supported. That does not prove a trend over all the years, which stays not proven.${flips ? ' Move the start a little and the direction even reverses.' : ''} Both can be true at once. The trap is quoting the short window as if it covered every year: a fair claim always says which years it means. (Trend from ${range}.)`,
+      `注意年份。${K} 个起点里有 ${c.nSig} 个单独看能拿到"趋势有证据支持"的章，说明这些年份里的变化有证据支持。但这证明不了全部年份都有趋势，全部年份的结论仍是证据不足。${flips ? '起点稍微挪一挪，方向甚至会反过来。' : ''}两者可以同时成立。真正的陷阱，是把短时段的结果说成全部年份都这样：公平的说法，一定要讲清楚是哪几年。（趋势在${range}之间。）`);
   }
   return {
     'robust': t(`Rock solid. We moved the start year from ${a} all the way to ${b} and questioned the data ${K} times. The story never cracked: it ${rise ? 'rises' : 'falls'} every single time (${range}). Start wherever you like, this evidence holds.`,
@@ -390,7 +395,7 @@ function renderAnswer() {
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${unitTerm(v)}); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${unitTerm(v)}）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。`)}</p>
     <div id="mainChart">${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}</div>
     <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp(r.verdict === 'unsure' ? 'unproven' : 'confirmed')}</div>${badge}
-      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}${detectiveNote(q)}
+      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${fragileNote(v)}${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}${detectiveNote(q)}
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
       ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
       ${startYearBlock(r, v)}
@@ -452,6 +457,14 @@ function modelHaze(sat) {
   const level = lower ? t('runs lower than', '明显低于') : higher ? t('runs higher than', '明显高于') : t('is close to', '接近');
   return `<p>${t(`The MERRA-2 model also estimates haze, with no gaps (1991–2025). Over the same years its average here (${modelMean.toFixed(2)}) ${level} what the satellite measures (${satMean.toFixed(2)}), so we only compare the direction: the model looks <b>${dir(m.test.slope)}</b> since 1991.`, `MERRA-2 模型也会估算雾霾，而且没有缺测（1991–2025）。在相同年份里，它在这里的平均值（${modelMean.toFixed(2)}）${level}卫星实测（${satMean.toFixed(2)}），所以只比较方向：模型显示 1991 年以来<b>${dir(m.test.slope)}</b>。`)}</p>`;
 }
+// What clue 3 can and cannot say for this variable: no stock advice that does not apply.
+function clue3Note() {
+  const v = state.variable;
+  if (v === 'T2M') return `<p>${t('These are averages over a region, not readings from one weather station, so the thermometer check above compares like with like over the same years.', '这些是区域平均，不是某个气象站的读数，所以上面的温度计核对只比较双方都有数据的同样年份。')}</p>`;
+  if (CHECKS[v]) return `<p>${t('Agreeing on direction makes the answer stronger; it does not make the trend significant on its own.', '方向一致会让答案更可靠，但并不会让趋势本身变得显著。')}</p>`;
+  const name = VAR(v).short();
+  return `<p>${t(`No second, independent dataset for ${name} is connected yet, so this answer has not been checked against another source.`, `目前还没有接入第二套独立的${name}数据，所以这个答案还没有和其他数据源核对过。`)}</p>`;
+}
 function crossCheck() {
   const c = CHECKS[state.variable];
   if (!c) return '';
@@ -488,7 +501,7 @@ function renderClues() {
       <p class="warn">⚠️ ${t('Two things changing together is a clue worth following — not proof that one caused the other.', '两个东西一起变化，是值得深究的线索，但不等于一个导致了另一个。')}</p>
       ${v.kind === 'model' ? `<p class="warn">${t('Variables marked “Model MERRA-2” come from the same model, so agreeing with each other is not independent evidence. Satellite data is a more independent check.', '标着"模型 MERRA-2"的变量来自同一个模型，彼此吻合不算独立证据；卫星数据才是更独立的核对。')}</p>` : ''}</div>
     <div class="card clue"><h3>${t('Clue 3: check against other data', '线索 3：用别的数据核对')}</h3>${crossCheck()}
-      <p>${t('These are averages over a region, not readings from one weather station. Before concluding, compare with local station records (for example NOAA Climate Data Online).', '这些是区域平均，不是某个气象站的读数。下结论前，可以和当地气象站记录比一比（例如 NOAA 气候数据在线服务 CDO）。')}</p></div>
+      ${clue3Note()}</div>
   </div>`;
 }
 
@@ -690,9 +703,9 @@ const TOUR = [
   { el: 'caseWallWrap', text: () => t('Welcome, detective. Each card is a city with 35 years of NASA temperature data, pinned to one question: is Earth changing?', '欢迎你，侦探。每张卡片是一座城市和它 35 年的 NASA 气温数据，都钉在同一个问题上：地球在变吗？'), act: () => window.scrollTo({ top: 0, behavior: 'smooth' }), noScroll: true, ms: 3000 },
   { el: 'step4', text: () => t('Case 1: New Delhi. Read the case brief, then guess first. We say “got warmer”… and replay 35 years.', '案子 1：新德里。先读案情简介，再猜。我们猜"变暖了"……然后回放 35 年。'), act: () => { pick({ site: 'delhi', variable: 'T2M', caseId: 'delhi', scroll: false }); $('step4').scrollIntoView({ behavior: 'smooth', block: 'start' }); later(1200, () => { state.guess = 'up'; renderAnswer(); }); }, noScroll: true, ms: 4800 },
   { el: 'step4', text: () => t('Twist: NASA’s model looks like cooling, the city’s thermometer looks like warming, and neither is proven. Case open.', '反转：NASA 模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。案子没结。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
-  { el: 'step4', text: () => t('Case 2: is Cairo’s air getting cleaner? Over all the years, the satellite says: not proven.', '案子 2：开罗的空气变干净了吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', caseId: 'cairohaze', guess: 'skip', scroll: false }); later(350, () => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }, noScroll: true, ms: 3000 },
+  { el: 'step4', text: () => t('Case 2: is the haze over Cairo thinning? Over all the years, the satellite says: not proven.', '案子 2：开罗上空的雾霾在变薄吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', caseId: 'cairohaze', guess: 'skip', scroll: false }); later(350, () => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }, noScroll: true, ms: 3000 },
   { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 4600 },
-  { el: 'step4', text: () => t('Gotcha! Picking the years that fit is how people get fooled. Every case ends with a detective’s note like this one.', '抓到了！只挑符合说法的年份，就是被骗的套路。每个案子最后都有一段这样的侦探笔记。'), act: () => document.querySelector('#answer .det-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
+  { el: 'step4', text: () => t('Both are true: falling since 2009, not proven since 2001. The trap is quoting one as the other. Every case ends with a detective’s note.', '两者都对：2009 年以来在下降，2001 年以来证据不足。陷阱是把其中一个说成另一个。每个案子最后都有一段侦探笔记。'), act: () => document.querySelector('#answer .det-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
   { el: 'step6', text: () => t('Close the case: one page with your guess, the evidence and the clues, to print or share.', '结案：一页纸写下你的推测、证据和线索，可以打印或分享。'), act: () => $('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), noScroll: true, ms: 3000 },
   { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 3200 },
 ];
