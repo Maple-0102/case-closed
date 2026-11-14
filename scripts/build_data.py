@@ -150,6 +150,25 @@ def main():
                 'source': {'via': 'NOAA NCEI GHCN-Monthly v4 (TAVG, qcf)', 'station': sid, 'stationName': name.replace('_', ' ').title(),
                            'lat': lat, 'lon': lon, 'file': 'data/raw/noaa/ghcnm-v4-qcf-stations.dat', 'sha256': hashlib.sha256(raw).hexdigest()},
             }
+    # NASA GISTEMP v4 global land-ocean temperature anomaly (deg C vs 1951-1980), monthly.
+    gis = ROOT / 'data' / 'raw' / 'gistemp' / 'GLB.Ts+dSST.csv'
+    if gis.exists():
+        raw = gis.read_bytes()
+        table = {}
+        for row in csv.reader(raw.decode().splitlines()[2:]):
+            if row and row[0].isdigit():
+                table[int(row[0])] = row[1:13]
+        cal = list(months((1991, 1), (2025, 12)))
+        vals = []
+        for m in cal:
+            cell = table.get(int(m[:4]), ['***'] * 12)[int(m[5:]) - 1]
+            vals.append(None if '*' in cell else float(cell))
+        out['global'] = {
+            'T2M': {'start': cal[0], 'end': cal[-1], 'values': vals, 'missing': sum(v is None for v in vals),
+                    'source': {'via': 'NASA GISS GISTEMP v4, global land-ocean temperature index (anomaly vs 1951-1980)',
+                               'url': 'https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv',
+                               'file': 'data/raw/gistemp/GLB.Ts+dSST.csv', 'sha256': hashlib.sha256(raw).hexdigest()}},
+        }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, separators=(',', ':')))
     for site, vs in out['series'].items():

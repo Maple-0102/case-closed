@@ -42,3 +42,6 @@ For each city we take the station with the most complete 1991–2025 record insi
 | Sydney | Sydney Airport | 35 | +0.40 | +0.35 | yes |
 
 Seven of eight agree closely. In New Delhi the model shows cooling and the station shows (non-significant) warming; the page says so next to the answer.
+
+## Global comparison (NASA GISTEMP v4)
+The global land-ocean temperature index (monthly anomalies) is averaged per year in the same way and tested over the same years as each city. 1991–2025: +0.24 °C per decade (95% CI 0.19–0.30). The page shows the ratio of the city's Sen slope to the global one, only when the city's trend is significant.

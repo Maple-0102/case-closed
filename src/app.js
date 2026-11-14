@@ -2,7 +2,8 @@
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the team.
 import { t, setLang, getLang, STATIC } from './i18n.js';
-import { compare } from './data.js';
+import { compare, yearly } from './data.js';
+import { trendTest } from './stats.js';
 import { VARIABLES, CHECKS, VAR } from './variables.js';
 import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js';
 import { chartSvg, replay } from './chart.js';
@@ -28,6 +29,7 @@ async function load() {
   VARIABLES.filter(v => !v.pending).forEach(v => { state.results[v.id] = compare(state.data.series, v.id, v, ids); });
   Object.values(CHECKS).forEach(c => { if (!state.results[c.id]) state.results[c.id] = compare(state.data.series, c.id, c, ids); });
   state.results.AOD_MODEL = compare(state.data.series, 'AOD_MODEL', { annual: 'mean' }, ids);
+  state.globalRows = state.data.global ? yearly(state.data.global.T2M, { annual: 'mean' }).rows : null;
 }
 
 // ---------- static text ----------
@@ -168,6 +170,20 @@ function renderMystery(box, q, r, v) {
   runReplay();
 }
 
+// Compare a city's temperature trend with the whole planet over the same years (NASA GISTEMP).
+function globalLine(test) {
+  if (!state.globalRows) return '';
+  const g = trendTest(state.globalRows.filter(x => x.complete && x.year >= test.firstYear && x.year <= test.lastYear));
+  if (!g) return '';
+  const ratio = test.slope / g.slope;
+  const here = `${sign(test.slope * 10, 2)} °C`, world = `${sign(g.slope * 10, 2)} °C`;
+  const pace = ratio < 0 ? t('in the opposite direction to', '方向与全球相反，全球是')
+    : ratio >= 1.25 ? t(`about ${ratio.toFixed(1)} times as fast as`, `大约是全球的 ${ratio.toFixed(1)} 倍，全球是`)
+    : ratio <= 0.8 ? t('slower than', '比全球慢，全球是')
+    : t('at about the same pace as', '和全球差不多，全球是');
+  return `<p class="everyday">🌍 ${t(`Compared with the whole planet: ${here} per decade here, ${pace} the global average (${world} per decade, NASA GISTEMP, land and ocean). Land warms faster than the ocean, so many cities change faster than the global average.`, `和整个地球比：这里每十年 ${here}，${pace}每十年 ${world}（NASA GISTEMP，陆地加海洋）。陆地比海洋升温快，所以很多城市比全球平均变得快。`)}</p>`;
+}
+
 // If the city's weather station trends the other way, say so right under the big answer.
 function stationWarning(r, v) {
   if (v.id !== 'T2M') return '';
@@ -210,7 +226,7 @@ function renderAnswer() {
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${v.unit}); thick line = the trend; light fan = the likely range.`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${v.unit}）；粗线 = 趋势；浅色扇形 = 很可能的范围。`)}</p>
     ${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}
     <div class="after" id="after" hidden>${badge}
-      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${parts(r, v)}
+      <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
       ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
       <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
