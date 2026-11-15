@@ -518,11 +518,11 @@ const QUIZ = {
       claim: t('“NASA satellite data prove the haze over Cairo has been thinning since 2001.”', '"NASA 卫星数据证明，开罗上空的雾霾从 2001 年起一直在变薄。"'),
       answer: 'b',
       opts: [
-        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that only holds if you start in ${first} or later, and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是从 ${first} 年或更晚起算才成立的结果，却说成全部年份都这样。`)],
-        ['b', t('No: it is only supported for the later years', '不签：只有后面那些年份才有证据支持'), t('Right. The problem is the years, not the satellite: the decline is supported only in the later windows.', '对。问题出在年份，不在卫星：只有后面几段年份的下降有证据支持。')],
+        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that holds only for some later start years (${first} or later) and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是只在部分较晚起点（${first} 年或更晚）成立的结果，却说成全部年份都这样。`)],
+        ['b', t('No: some later start years support a decline, but all the years do not', '不签：部分较晚的起点支持下降，但全部年份不支持'), t('Right. The problem is the years, not the satellite. Note what this does not mean: it does not pin down a year when the change began, and a falling trend does not mean every single year was lower than the one before.', '对。问题出在年份，不在卫星。也要注意它不代表什么：它并没有找到变化从哪一年开始，而且趋势下降也不等于每一年都比前一年低。')],
         ['c', t('No: the haze is actually getting thicker', '不签：雾霾其实在变厚'), t('The trend points down from every start year, not up. What is wrong with the claim is the years it covers, not the direction.', '从每个起点算，趋势都是往下，不是往上。这句话错在它覆盖的年份，不在方向。')],
       ],
-      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Counting only from ${first} or later, the decline is supported.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。只从 ${first} 年或更晚起算，下降才有证据支持。`),
+      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Windows that start in ${first} or later support a decline. A fair claim names its years.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。从 ${first} 年或更晚起算的窗口支持下降。公平的说法要写明年份。`),
     };
   },
   delhi: () => {
@@ -531,27 +531,27 @@ const QUIZ = {
       claim: t('“NASA data show that New Delhi is getting cooler.”', '"NASA 数据显示，新德里在变冷。"'),
       answer: 'b',
       opts: [
-        ['a', t('Yes: NASA’s model shows a cooling trend', '签：NASA 模型显示在降温'), t(`The model does lean that way. But over the same ${pair.n} years the city’s own thermometer points the other way, and neither trend is proven over those years. One source is not the whole story.`, `模型确实偏向降温。但在相同的 ${pair.n} 年里，城里的温度计方向相反，而且这几年里两者都证据不足。一套数据不是全部真相。`)],
-        ['b', t('No: two sources disagree, so the direction is not settled', '不签：两套数据意见相反，方向还定不下来'), t('Right. When independent sources point in opposite directions and neither is proven, the honest answer is “not settled”.', '对。两套独立数据方向相反、又都没被证实时，诚实的回答就是"还没定论"。')],
+        ['a', t('Yes: NASA’s model shows a cooling trend', '签：NASA 模型显示在降温'), t(`The model result is real, but the claim stretches it. It is a 110 km regional average, not the city, and over the ${pair.n} years both records cover, the city’s own weather station points the other way, with neither trend proven. You may quote the model’s estimate with its limits; you may not turn it into “the city is getting cooler”.`, `模型的结果是真的，但这句话把它说过头了。模型是 110 公里区域的平均，不是这座城市本身；而在两套记录都有数据的 ${pair.n} 年里，城里的气象站方向相反，两者都证据不足。可以引用模型的估计并说明局限，但不能把它说成"这座城市在变冷"。`)],
+        ['b', t('No: as written it goes too far; the sources disagree for the city', '不签：这样说过头了，两套数据对这座城市的说法不一致'), t('Right. This does not mean the model is useless: its estimate can be quoted with its limits. It means the city-wide claim is not supported.', '对。这不代表模型没用：它的估计可以连同局限一起引用。只是"整座城市在变冷"这个说法得不到支持。')],
         ['c', t('No: New Delhi is clearly warming', '不签：新德里明显在变暖'), t('The thermometer leans towards warming, but it is not proven either, and the model leans the other way. “Clearly” is more than these data can say.', '温度计偏向变暖，但同样证据不足，而模型方向相反。"明显"超出了这些数据能说的范围。')],
       ],
-      verified: t(`Over the same ${pair.n} years (${pair.first}–${pair.last}), NASA’s MERRA-2 model (${a} °C per decade) and the city’s weather station (${b} °C per decade) point in opposite directions, and neither trend is proven. These data do not settle whether New Delhi is warming or cooling.`, `在相同的 ${pair.n} 年（${pair.first}–${pair.last}）里，NASA MERRA-2 模型（每十年 ${a} °C）和城里的气象站（每十年 ${b} °C）方向相反，而且两者都证据不足。凭这些数据，定不了新德里是在变暖还是变冷。`),
+      verified: t(`Over ${r.test.firstYear}–${r.test.lastYear}, NASA’s MERRA-2 model estimates a cooling trend for the 110 km region around New Delhi (${dec10(r.test.slope, 2)} °C per decade, only just significant). Over the ${pair.n} years both records cover, the model (${a}) and the city’s weather station (${b} °C per decade) point in opposite directions, and neither is proven. So these data do not support saying that the city is getting cooler.`, `在 ${r.test.firstYear}–${r.test.lastYear} 年，NASA MERRA-2 模型估计新德里周边 110 公里区域在降温（每十年 ${dec10(r.test.slope, 2)} °C，只是勉强显著）。在两套记录都有数据的 ${pair.n} 年里，模型（${a}）和城里的气象站（每十年 ${b} °C）方向相反，而且都证据不足。所以这些数据不支持"这座城市在变冷"的说法。`),
     };
   },
   moscowfast: () => {
     const T = result('moscow', 'T2M').test;
     const g = trendTest(state.globalRows.filter(x => x.complete && x.year >= T.firstYear && x.year <= T.lastYear));
     const d = x => dec10(x, 2), ratio = (T.slope / g.slope).toFixed(1);
-    const range = `${d(T.ciLow)} … ${d(T.ciHigh)}`, grange = `${d(g.ciLow)} … ${d(g.ciHigh)}`;
+    const range = `${d(T.ciLow)} … ${d(T.ciHigh)}`;
     return {
       claim: t('“Moscow is warming twice as fast as the planet, and NASA data prove it.”', '"莫斯科升温速度是全球的两倍，NASA 数据证明了这一点。"'),
       answer: 'b',
       opts: [
-        ['a', t(`Yes: ${d(T.slope)} is about twice ${d(g.slope)}`, `签：${d(T.slope)} 大约是 ${d(g.slope)} 的两倍`), t(`The arithmetic is right, but both numbers are estimates with ranges. Moscow’s 95% range is ${range} °C per decade, which overlaps the global range (${grange}). The ratio itself was never tested, so “prove” goes too far.`, `算术没错，但两个数都是带范围的估计。莫斯科的 95% 范围是每十年 ${range} °C，和全球的范围（${grange}）有重叠。这个倍数本身从没检验过，所以"证明"说过头了。`)],
+        ['a', t(`Yes: ${d(T.slope)} is about twice ${d(g.slope)}`, `签：${d(T.slope)} 大约是 ${d(g.slope)} 的两倍`), t('The arithmetic is right: for the selected years, the ratio of the two trend estimates is about two. But we did no separate uncertainty analysis of that ratio, so you cannot say NASA data “prove” twice as fast.', '算术没错：在所选年份里，两个趋势估计值之比大约是 2。但我们没有对这个倍数做专门的不确定性分析，所以不能说 NASA 数据"证明了"两倍。')],
         ['b', t('Partly: the warming is supported, “twice as fast” is not proven', '只签一半：变暖有证据支持，"两倍"没被证明'), t('Right. Keep the part the test supports, and say “about” and “estimated” for the part it does not.', '对。保留检验支持的部分，没检验过的部分要说"大约""估计"。')],
         ['c', t('No: Moscow’s warming is not proven', '不签：莫斯科变暖没被证实'), t(`Moscow’s warming over ${T.firstYear}–${T.lastYear} is supported. What is not proven is the “twice as fast” part.`, `莫斯科在 ${T.firstYear}–${T.lastYear} 年的变暖是有证据支持的。没被证明的是"两倍"那部分。`)],
       ],
-      verified: t(`Moscow’s warming from ${T.firstYear} to ${T.lastYear} is supported: about ${d(T.slope)} °C per decade (95% range ${range}). That estimate is about ${ratio} times the global estimate for the same years (${d(g.slope)} °C per decade, NASA GISTEMP), but the ratio was not itself tested.`, `莫斯科 ${T.firstYear}–${T.lastYear} 年的变暖有证据支持：每十年约 ${d(T.slope)} °C（95% 范围 ${range}）。这个估计值大约是同期全球估计值（每十年 ${d(g.slope)} °C，NASA GISTEMP）的 ${ratio} 倍，但这个倍数本身没有检验过。`),
+      verified: t(`Moscow’s warming from ${T.firstYear} to ${T.lastYear} is supported: about ${d(T.slope)} °C per decade (95% range ${range}). That estimate is about ${ratio} times the global estimate for the same years (${d(g.slope)} °C per decade, NASA GISTEMP), but no separate uncertainty analysis was done for that ratio, so “twice as fast” is an estimate, not a proven result.`, `莫斯科 ${T.firstYear}–${T.lastYear} 年的变暖有证据支持：每十年约 ${d(T.slope)} °C（95% 范围 ${range}）。这个估计值大约是同期全球估计值（每十年 ${d(g.slope)} °C，NASA GISTEMP）的 ${ratio} 倍，但没有对这个倍数做专门的不确定性分析，所以"两倍"只是估计，不是被证明的结果。`),
     };
   },
 };
@@ -716,6 +716,7 @@ function pick({ site, variable, caseId = null, guess = null, scroll = true }) {
   if (site) state.site = site;
   if (variable) state.variable = variable;
   state.caseId = caseId; state.guess = guess; state.win = null;
+  if (caseId) delete state.quiz[caseId];
   renderFlow();
   if (scroll) $('step4').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
