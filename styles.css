@@ -531,3 +531,17 @@ body { background: var(--bg); color: var(--ink); }
 @media (max-width: 600px) { .next-row { flex-direction: column; } .next-row .fc-jump { width: 100%; } }
 .tamper-task { margin: 4px 0 2px; font-family: var(--type); font-weight: 700; color: var(--red); }
 .tamper .tamper-task + .hint { margin-top: 0; }
+
+/* the year the task names, marked on the track (thumb is about 16px wide) */
+.slider-wrap { position: relative; flex: 1 1 220px; }
+.slider-wrap input[type=range] { width: 100%; margin: 0; }
+.slider-tick { position: absolute; top: 0; left: calc(8px + var(--p) * (100% - 16px)); transform: translateX(-50%); font-family: var(--type); font-weight: 700; font-size: .78rem; color: var(--red); line-height: 1; white-space: nowrap; pointer-events: none; }
+.slider-tick::after { content: ''; display: block; width: 2px; height: 9px; margin: 2px auto 0; background: var(--red); }
+.tamper .explore + .hint { margin: 6px 0 4px; }
+
+/* colour band under the track: start years that would get a different stamp (stamp colours) */
+/* a dashed, lighter underline so it reads as a marker, not a second track */
+.slider-band { position: absolute; bottom: 5px; height: 3px; left: calc(8px + var(--l) * (100% - 16px)); width: calc((var(--r) - var(--l)) * (100% - 16px)); pointer-events: none; opacity: .75;
+  background: repeating-linear-gradient(90deg, var(--band) 0 6px, transparent 6px 10px); }
+.band-confirmed { --band: #2f6b3a; } .band-unproven { --band: #8a6d1e; }
+@media (prefers-color-scheme: dark) { .band-confirmed { --band: #8fd19e; } .band-unproven { --band: #e8c76a; } }

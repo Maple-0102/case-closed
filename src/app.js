@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116r';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116r';
-import { trendTest } from './stats.js?v=20261116r';
-import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116r';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116r';
-import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116r';
-import { loadLand, mapSvg } from './map.js?v=20261116r';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116r';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116v';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116v';
+import { trendTest } from './stats.js?v=20261116v';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116v';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116v';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116v';
+import { loadLand, mapSvg } from './map.js?v=20261116v';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116v';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -306,29 +306,43 @@ const stampKind = (w, r) => (w.start === checkFor().full.start ? (r.verdict === 
 
 // A concrete task for the slider, picked from this record's own start-year results:
 // the first start year whose stamp differs from the full record's, else the most misleading one.
+// Returns the line to show and the year to mark on the track.
 function sliderTask(c) {
   const r = result(), q = question(VAR(state.variable));
   const full = stampKind(c.full, r);
   const flip = q.mystery ? null : c.windows.find(w => w.start !== c.full.start && stampKind(w, r) !== full);
-  if (flip) return t(`Try it: drag the start year to ${flip.start}. Does the stamp change?`, `试一试：把红点拖到 ${flip.start} 年，看看印章会不会变。`);
+  if (flip) {
+    const prev = c.windows[c.windows.indexOf(flip) - 1].start;
+    const col = stampKind(flip, r) === 'confirmed' ? { en: 'green', zh: '绿色' } : { en: 'brown', zh: '褐色' };
+    return { year: flip.start, text: prev === c.full.start
+      ? t(`Drag the red dot one year right, over the ${col.en} dashes under the track. Does the stamp change?`, `把红点往右挪一年，拖到滑轨下方${col.zh}虚线那一段，看看印章会不会变。`)
+      : t(`Drag the red dot from ${prev} over the ${col.en} dashes under the track. Does the stamp change?`, `把红点从 ${prev} 年拖到滑轨下方${col.zh}虚线那一段，看看印章会不会变。`) };
+  }
   const far = c.farthest;
-  if (far && far.start !== c.full.start) return q.mystery
-    ? t(`Try it: drag the start year to ${far.start}. How far does the model’s trend line move?`, `试一试：把红点拖到 ${far.start} 年，看看模型的趋势线会变多少。`)
-    : t(`Try it: drag the start year to ${far.start}, the most misleading start. Does the trend line move? Does the stamp?`, `试一试：把红点拖到 ${far.start} 年，这是最误导人的起点。趋势线会动吗？印章呢？`);
-  return t('Try it: drag the red dot left and right, and watch the trend line and the stamp.', '试一试：左右拖动红点，看看趋势线和印章怎么变。');
+  if (far && far.start !== c.full.start) return { year: far.start, text: q.mystery
+    ? t(`Drag the red dot to ${far.start} and watch how far the model’s trend estimate moves.`, `把红点拖到 ${far.start} 年，看看模型的趋势估计会变多少。`)
+    : t(`Drag the red dot to ${far.start}, the most misleading start, and watch the trend estimate.`, `把红点拖到 ${far.start} 年（最误导人的起点），看看趋势估计怎么变。`) };
+  return { year: null, text: t('Drag the red dot left and right, and watch the trend estimate.', '左右拖动红点，看看趋势估计怎么变。') };
 }
 // The slider panel, right under the main chart.
 function tamperPanel() {
   const c = checkFor();
   if (!c || c.skipped) return '';
-  const a = c.windows[0].start, b = c.windows[c.windows.length - 1].start;
+  const a = c.windows[0].start, b = c.windows[c.windows.length - 1].start, task = sliderTask(c);
+  // Under the track: a band over the start years whose stamp would differ from the full record's.
+  const r = result(), q = question(VAR(state.variable)), full = stampKind(c.full, r), pos = y => (y - a) / (b - a);
+  const odd = q.mystery ? [] : c.windows.filter(w => w.start !== c.full.start && stampKind(w, r) !== full);
+  const runs = [];
+  odd.forEach(w => { const last = runs[runs.length - 1]; if (last && w.start === last.to + 1 && stampKind(w, r) === last.kind) last.to = w.start; else runs.push({ from: w.start, to: w.start, kind: stampKind(w, r) }); });
+  const half = 0.5 / (b - a);
+  const band = runs.map(x => `<span class="slider-band band-${x.kind}" style="--l:${Math.max(0, pos(x.from) - half)};--r:${Math.min(1, pos(x.to) + half)}" aria-hidden="true"></span>`).join('');
   return `<div class="tamper" id="tamper">
     <p class="tamper-title">🕵️ ${t('Try to fake the evidence: keep only the years you want', '试着伪造证据：只留下你想要的年份')}</p>
-    <p class="tamper-task">👆 ${sliderTask(c)}</p>
-    <p class="hint">${t('The data never changes, only which years you look at.', '数据一点没改，变的只是你看哪几年。')}</p>
+    <p class="tamper-task">${task.text}</p>
     <div class="slider-row"><label for="startSlider">${term('startYear', t('Start year', '起始年份'))}</label>
-      <input type="range" id="startSlider" min="${a}" max="${b}" step="1" value="${state.win ?? a}"><output id="startOut" for="startSlider"></output></div>
+      <div class="slider-wrap">${band}<input type="range" id="startSlider" min="${a}" max="${b}" step="1" value="${state.win ?? a}"></div><output id="startOut" for="startSlider"></output></div>
     <div class="explore" id="exploreCard" aria-live="polite"></div>
+    <p class="hint">${t('The data never changes, only which years you look at.', '数据一点没改，变的只是你看哪几年。')}</p>
   </div>`;
 }
 // The summary section further down: every start year at a glance, and the verdict.
@@ -546,16 +560,17 @@ const QUIZ = {
     const c = checkFor('cairo', 'AOD'), sig = c.windows.filter(w => w.significant).map(w => w.start);
     // "From X or later" only if every later window is supported too; otherwise list them.
     const first = sig[0], toEnd = sig.length && c.windows.every(w => w.start < first || w.significant);
-    const when = toEnd ? t(`${first} or later`, `${first} 年或更晚`) : sig.join(t(', ', '、'));
+    const lastStart = c.windows[c.windows.length - 1].start;
+    const when = toEnd ? (first === lastStart ? `${first}` : `${first}–${lastStart}`) : sig.join(t(', ', '、'));
     return {
       claim: t('“NASA satellite data prove the haze over Cairo has been thinning since 2001.”', '"NASA 卫星数据证明，开罗上空的雾霾从 2001 年起一直在变薄。"'),
       answer: 'b',
       opts: [
-        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that holds only for some later start years (${when}) and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是只在部分较晚起点（${when}）成立的结果，却说成全部年份都这样。`)],
+        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that holds only for some later start years (windows starting in ${when}) and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是只在部分较晚起点（从 ${when} 年起算的窗口）成立的结果，却说成全部年份都这样。`)],
         ['b', t('No: some later start years support a decline, but all the years do not', '不签：部分较晚的起点支持下降，但全部年份不支持'), t('Right. The problem is the years, not the satellite. Note what this does not mean: it does not pin down a year when the change began, and a falling trend does not mean every single year was lower than the one before.', '对。问题出在年份，不在卫星。也要注意它不代表什么：它并没有找到变化从哪一年开始，而且趋势下降也不等于每一年都比前一年低。')],
         ['c', t('No: the haze is actually getting thicker', '不签：雾霾其实在变厚'), t('The trend points down from every start year, not up. What is wrong with the claim is the years it covers, not the direction.', '从每个起点算，趋势都是往下，不是往上。这句话错在它覆盖的年份，不在方向。')],
       ],
-      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Windows that start in ${when} support a decline. A fair claim names its years.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。从 ${when}起算的窗口支持下降。公平的说法要写明年份。`),
+      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Among the start years checked, windows starting in ${when} and ending in ${c.end} support a decline; this check does not estimate when a decline began. A fair claim names its years.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。在本次检查的起点中，从 ${when} 年起算、截至 ${c.end} 年的窗口都支持下降；这项检验没有估计下降从哪一年开始。公平的说法要写明年份。`),
     };
   },
   delhi: () => {
@@ -1026,7 +1041,7 @@ const TOUR = [
   { el: 'step4', text: () => t('Twist: NASA’s model looks like cooling, the city’s thermometer looks like warming, and neither is proven. Case open.', '反转：NASA 模型看起来在降温，城里的温度计却看起来在升温，而且都没被证实。案子没结。'), act: () => document.querySelector('#answer .big')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
   { el: 'step4', text: () => t('Case 2: is the haze over Cairo thinning? Over all the years, the satellite says: not proven.', '案子 2：开罗上空的雾霾在变薄吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', caseId: 'cairohaze', guess: 'skip', scroll: false }); later(350, () => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }, noScroll: true, ms: 3000 },
   { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 4600 },
-  { el: 'step4', text: () => t('Both are true: falling since 2009, not proven since 2001. The trap is quoting one as the other. Every case ends with a detective’s note.', '两者都对：2009 年以来在下降，2001 年以来证据不足。陷阱是把其中一个说成另一个。每个案子最后都有一段侦探笔记。'), act: () => document.querySelector('#answer .det-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
+  { el: 'step4', text: () => t('Both are true: the 2009–2025 window passes, 2001–2025 does not. The trap is quoting one as the other. Every case ends with a detective’s note.', '两者都对：2009–2025 年的窗口通过检验，2001–2025 年的不通过。陷阱是把其中一个说成另一个。每个案子最后都有一段侦探笔记。'), act: () => document.querySelector('#answer .det-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
   { el: 'step6', text: () => t('Close the case: one page with your guess, the evidence and the clues, to print or share.', '结案：一页纸写下你的推测、证据和线索，可以打印或分享。'), act: () => $('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), noScroll: true, ms: 3000 },
   { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 3200 },
 ];

@@ -1,6 +1,6 @@
 // Cases, guiding questions, clues and glossary.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t } from './i18n.js?v=20261116r';
+import { t } from './i18n.js?v=20261116v';
 
 export const SITE_NAMES = {
   singapore: ['Singapore', '新加坡'], delhi: ['New Delhi', '新德里'], cairo: ['Cairo', '开罗'],
@@ -53,7 +53,7 @@ export const CASES = [
     title: () => t('Is the haze over Cairo thinning?', '开罗上空的雾霾在变薄吗？'),
     sub: () => t('A satellite measures haze in the whole column of air, not street-level air quality. Then try the slider.', '卫星测的是整层大气里的雾霾，不是街上的空气质量。看完再试试滑块。'),
     brief: () => t('A NASA satellite has measured the haze over Cairo since 2001: how much the dust, smoke and pollution in the whole column of air dim the sunlight. That is not the same as the air you breathe at street level. Is the haze thinning? After the answer, try the slider.', 'NASA 卫星从 2001 年起一直在测开罗上空的雾霾：整层大气里的灰尘、烟和污染颗粒让阳光变暗了多少。这和街上呼吸的空气不是一回事。雾霾在变薄吗？看完答案，再试试滑块。'),
-    note: () => t('Over all the years (2001–2025): not proven. From 2009 the decline is supported. Both are true. The mistake is quoting the 2009–2025 result as if it covered every year since 2001: a fair claim keeps its years.', '看全部年份（2001–2025）：证据不足。从 2009 年起算，下降有证据支持。两者都对。错误在于把 2009–2025 年的结果说成 2001 年以来一直如此：公平的说法要讲清楚是哪几年。') },
+    note: () => t('Over all the years (2001–2025): not proven. Among the start years checked, every window starting in 2008–2011 and ending in 2025 passes. On the year-by-year chart, most of the fall comes in the later part of the record. This check does not estimate when a decline began. A fair claim names its years.', '全部年份（2001–2025）：证据不足。在本次检查的起点中，从 2008–2011 年起算、截至 2025 年的窗口都支持下降。逐年图上，主要降幅出现在记录后段。这项检验没有估计下降从哪一年开始。公平的说法要写明年份。') },
   { id: 'moscowhaze', site: 'moscow', variable: 'AOD', expect: 'down',
     title: () => t('Two satellites: is the haze over Moscow thinning?', '两颗卫星：莫斯科上空的雾霾在变薄吗？'),
     sub: () => t('Same sensor, same city, two satellites. Do they agree?', '同样的仪器，同一座城市，两颗卫星。它们一致吗？'),
