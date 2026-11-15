@@ -46,8 +46,8 @@ function note() {
     <path class="cw-ink cw-ink-2" pathLength="1" d="M120 318 C142 316, 172 312, 192 302"/>
     <path class="cw-ink cw-ink-3" pathLength="1" d="M180 302 L192 302 L190 314"/>
     <text class="cw-mark-t" x="14" y="336">${t('Click any card to start,', '点任意卡片就能开始，')}</text>
-    <text class="cw-mark-s" x="14" y="354">${t('or scroll down', '或者向下浏览')}<tspan class="cw-down" dx="4">↓</tspan>${t(` for ${CASES.length} more cases,`, `：还有 ${CASES.length} 个案子、`)}</text>
-    <text class="cw-mark-s" x="14" y="371">${t('a map, and your own question.', '一张地图，还能自己出题。')}</text>
+    <text class="cw-mark-s" x="14" y="354">${t('or scroll down', '或者向下浏览')}<tspan class="cw-down" dx="4">↓</tspan>${t(` for ${CASES.length} cases,`, `：${CASES.length} 个案子，`)}</text>
+    <text class="cw-mark-s" x="14" y="371">${t('each ending in a final check.', '每个最后都有一关判断题。')}</text>
   </g>`;
 }
 

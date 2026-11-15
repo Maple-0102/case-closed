@@ -150,3 +150,13 @@ export function correctAcrossSites(checks, officialQ, alpha = 0.05) {
   });
   return checks;
 }
+
+// Why a result is "not proven" (q >= alpha), so the page never blames year-to-year swings by default.
+// 'range-includes-zero': the 95% slope range still includes no change;
+// 'multiple-testing': the test alone passes (p < alpha) but not after the correction across places;
+// 'test': the range excludes zero, but the (autocorrelation-corrected) test does not pass.
+export function unsureReason(test, q, alpha = 0.05) {
+  if (!test || q < alpha) return null;
+  if (test.ciLow === null || (test.ciLow <= 0 && test.ciHigh >= 0)) return 'range-includes-zero';
+  return test.p < alpha ? 'multiple-testing' : 'test';
+}

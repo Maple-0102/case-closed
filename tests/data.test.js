@@ -2,7 +2,7 @@
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { monthly, observableMonths, yearly, compare } from '../src/data.js';
+import { monthly, observableMonths, yearly, compare, unsureReason } from '../src/data.js';
 
 const entry = (start, values) => ({ start, values });
 
@@ -153,4 +153,13 @@ test('cross-site correction: a window can lose significance it had on p alone', 
   assert.equal(c1.windows[1].q, 0.08);
   assert.equal(c1.windows[1].significant, false);
   assert.equal(c1.kind, 'same-direction-partial');
+});
+
+test('unsureReason names the real reason a result is not proven', () => {
+  // London plant greenness: p < 0.05 and a range above zero, but q >= 0.05 after the correction.
+  assert.equal(unsureReason({ p: 0.018, ciLow: 0.0002, ciHigh: 0.0016 }, 0.097), 'multiple-testing');
+  assert.equal(unsureReason({ p: 0.063, ciLow: -0.0015, ciHigh: 0.062 }, 0.072), 'range-includes-zero');
+  assert.equal(unsureReason({ p: 0.07, ciLow: 0.001, ciHigh: 0.02 }, 0.09), 'test');
+  assert.equal(unsureReason({ p: 0.001, ciLow: 0.1, ciHigh: 0.3 }, 0.004), null);
+  assert.equal(unsureReason({ p: 0.2, ciLow: null, ciHigh: null }, 0.3), 'range-includes-zero');
 });

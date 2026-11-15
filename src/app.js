@@ -2,7 +2,7 @@
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { t, setLang, getLang, STATIC } from './i18n.js';
-import { compare, yearly, startYearCheck, correctAcrossSites } from './data.js';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js';
 import { trendTest } from './stats.js';
 import { VARIABLES, CHECKS, VAR } from './variables.js';
 import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js';
@@ -134,6 +134,16 @@ function everyday(r, v) {
     ? `<p class="everyday">${t(`In everyday terms: a ${typ}’s ${v.short()} today is ${hl} than any year in ${span}.`, `换句话说：如今一个${typ}的${v.short()}，比 ${span} 年里任何一年都${hl}。`)}</p>`
     : `<p class="everyday">${t(`In everyday terms: a ${typ}’s ${v.short()} today is ${hl} than ${beaten} of the ${early.length} years in ${span}.`, `换句话说：如今一个${typ}的${v.short()}，比 ${span} 年里 ${early.length} 年中的 ${beaten} 年都${hl}。`)}</p>`;
 }
+// One sentence on why this result is "not proven", from its own numbers.
+function whyUnsure(r, v) {
+  const T = r.test, d = x => `${sign(x * 10, v.dp)} ${v.unit}`, up = T.slope > 0;
+  const k = Object.values(state.results[v.id] ?? {}).filter(x => x.test).length;
+  return {
+    'range-includes-zero': t(`Its 95% range (${T.ciLow === null ? '—' : `${d(T.ciLow)} to ${d(T.ciHigh)}`} per decade) still includes no change, so not even the direction is settled.`, `它的 95% 范围（每十年 ${T.ciLow === null ? '—' : `${d(T.ciLow)} 到 ${d(T.ciHigh)}`}）仍包括"没变化"，所以连方向都还定不下来。`),
+    'multiple-testing': t(`On its own the test points ${up ? 'up' : 'down'} (p = ${T.p.toPrecision(2)}), but this tool tests ${k} places at once and corrects for that; after the correction (q = ${r.q.toPrecision(2)}) it does not reach the threshold for support.`, `单独检验时指向${up ? '上升' : '下降'}（p = ${T.p.toPrecision(2)}），但本工具同时检验 ${k} 个地点并做了校正；校正后（q = ${r.q.toPrecision(2)}）没有达到统计支持阈值。`),
+    'test': t(`The 95% range of the slope excludes zero, but the trend test (with its correction for runs of similar years) does not reach this tool’s threshold for support (q = ${r.q.toPrecision(2)}).`, `斜率的 95% 范围不包括 0，但趋势检验（含对连续相似年份的修正）没有达到本工具的统计支持阈值（q = ${r.q.toPrecision(2)}）。`),
+  }[unsureReason(T, r.q)] ?? '';
+}
 function parts(r, v) {
   const T = r.test, sig = r.verdict !== 'unsure', up = T.slope > 0;
   const dec = x => sign(x * 10, v.dp);
@@ -141,7 +151,7 @@ function parts(r, v) {
   const cell = (n, q, a, d) => `<div class="part"><div class="part-q"><span class="part-n">${n}</span>${q}</div><div class="part-a">${a}</div><div class="part-d">${d}</div></div>`;
   return `<div class="parts">
     ${cell(1, t('Did it change?', '变了吗？'), sig ? t('Yes', '是') : term('unsure', t('Not sure yet', '还说不准')),
-      sig ? t(`A ${term('significant', 'significant')} ${term('trend', 'trend')}: unlikely to be just random ups and downs.`, `这是${term('significant', '显著')}的${term('trend', '趋势')}：不太可能只是随机起伏。`) : t('The years jump around too much to call it a significant trend.', '年份之间起伏太大，还不能算显著的趋势。'))}
+      sig ? t(`A ${term('significant', 'significant')} ${term('trend', 'trend')}: unlikely to be just random ups and downs.`, `这是${term('significant', '显著')}的${term('trend', '趋势')}：不太可能只是随机起伏。`) : whyUnsure(r, v))}
     ${cell(2, t('Which way?', '往哪个方向？'), sig ? (up ? t('Up ↗', '上升 ↗') : t('Down ↘', '下降 ↘')) : (up ? t('Looks up', '看起来上升') : t('Looks down', '看起来下降')),
       sig ? t(`Overall ${up ? 'upward' : 'downward'} from ${T.firstYear} to ${T.lastYear}.`, `${T.firstYear}–${T.lastYear} 年整体${up ? '往上' : '往下'}走。`) : (crosses ? t('Even the direction is not certain yet.', '连方向都还不能确定。') : t('The direction is fairly clear, but the evidence is weak.', '方向大致清楚，但证据还不够强。')))}
     ${cell(3, t('By how much?', '变了多少？'), `${sign(T.slope * (T.lastYear - T.firstYear), v.dp - 1)} ${v.unit}`,
@@ -196,7 +206,7 @@ function renderMystery(box, q, r, v) {
   box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>${briefNote(q)}
     <p class="cap">${t('Each dot = one year’s average air temperature from the NASA model (°C); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).', '每个点 = NASA 模型给出的一年平均气温（°C）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。')}</p>
     <div id="mainChart">${chartSvg(r.rows, r.test, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly model temperature with trend line', '模型每年气温和趋势线')) })}</div>
-    <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp('conflict')}</div>${badge}
+    <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp('conflict')}</div>${badge}${jumpToCheck()}
       <p class="big unsure">${neither ? t('Two sources, two directions, and neither is proven', '两套数据，方向相反，而且都没被证实') : t('Two sources, two answers', '两套数据，两个答案')}</p>
       <div class="duel">
         <div class="part"><div class="part-q">🛰️ ${t(`NASA model (MERRA-2), 110 km ${term('region', 'region')}`, `NASA 模型（MERRA-2），110 公里${term('region', '区域')}`)}</div><div class="part-a ${dirOf(T)}">${says(T)} ${dirOf(T) === 'up' ? '↗' : '↘'}</div><div class="part-d">${per(T)} · ${sig(T)}</div><div class="part-d">${t(`Over its full ${r.test.n} years: ${per(r.test)}, ${r.q < 0.05 ? `only just significant (q = ${r.q.toFixed(3)})` : 'not significant'}.`, `用完整 ${r.test.n} 年算：${per(r.test)}，${r.q < 0.05 ? `只是勉强显著（q = ${r.q.toFixed(3)}）` : '不显著'}。`)}</div></div>
@@ -282,8 +292,8 @@ function startYearText(c, r, v) {
       `故事没变，但短版本站不太稳。从每个起点算，方向都是${rise ? '往上' : '往下'}（${range}）。可要是起点太晚，剩下的年份就太少，证明不了：${K} 个起点里有 ${K - c.nSig} 个单独结不了案。这推翻不了全部年份的结论，但谁要引用这个趋势，都应该说清楚是哪几年。`),
     'direction-changes': t(`Watch out — this story flips. Start in one year and it’s going up; start in another and it’s going down (${range}). Anyone who quotes this trend without saying which years is only telling you half the story.`,
       `小心，这个故事会反转。从某些年份算是上升，换个起点就成了下降（${range}）。谁引用这个趋势却不说是哪几年，就只讲了半个故事。`),
-    'none-significant': t(`No start year cracks this case. We tried all ${K} and none has enough evidence (${range}). But “can’t prove it” is not “nothing changed”: the years just swing too much to tell.`,
-      `换哪个起点都破不了这个案。${K} 个都试过了，没有一个证据足够（${range}）。但"证明不了"不等于"没变"：只是年份之间起伏太大，看不清。`),
+    'none-significant': t(`No start year cracks this case. We tried all ${K} and none has enough evidence (${range}). But “can’t prove it” is not “nothing changed”: the evidence is just too weak to tell.`,
+      `换哪个起点都破不了这个案。${K} 个都试过了，没有一个证据足够（${range}）。但"证明不了"不等于"没变"：只是证据太弱，还看不清。`),
   }[c.kind];
 }
 function farthestText(c, v) {
@@ -395,10 +405,10 @@ function renderAnswer() {
   box.innerHTML = `<div class="card answer">${ticket()}<p class="q">${esc(q.text)}</p>${briefNote(q)}${seasonNote}
     <p class="cap">${t(`Each dot = one year’s ${r.season ? seasonLabel(r.season) + ' average' : 'value'} (${unitTerm(v)}); thick line = the trend over all years; light fan = trend lines as steep or as flat as the 95% range allows (it is not a range for each year’s value).`, `每个点 = 一年的${r.season ? ` ${seasonLabel(r.season)} 平均` : '数值'}（${unitTerm(v)}）；粗线 = 全部年份的趋势；浅色扇形 = 斜率在 95% 范围内、最陡到最平的所有可能趋势线（不是每年数值的范围）。`)}</p>
     <div id="mainChart">${chartSvg(r.rows, T, { cls: r.verdict, unit: v.unit, dp: v.dp, label: esc(t('Yearly values with trend line', '每年数值和趋势线')) })}</div>
-    <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp(r.verdict === 'unsure' ? 'unproven' : 'confirmed')}</div>${badge}
+    <div class="after" id="after" hidden>${tamperPanel()}<div id="stampSlot">${stamp(r.verdict === 'unsure' ? 'unproven' : 'confirmed')}</div>${badge}${jumpToCheck()}
       <p class="big ${r.verdict}">${bigAnswer(r.verdict, q.expect, v)}</p>${fragileNote(v)}${stationWarning(r, v)}${everyday(r, v)}${v.id === 'T2M' && r.verdict !== 'unsure' ? globalLine(T) : ''}${parts(r, v)}${detectiveNote(q)}
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
-      ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
+      ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${whyUnsure(r, v)} ${t('That is not the same as “no change”: a longer record, or another dataset, might make it clear.', '这不等于"没有变化"：更长的记录，或者另一套数据，可能就能看清。')}</p></div>` : ''}
       ${startYearBlock(r, v)}
       ${finalCheck()}
       <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
@@ -484,13 +494,19 @@ function crossCheck() {
   }
   return `${state.variable === 'AOD' ? modelHaze(a) : ''}<p>${t(`Same question, different dataset — ${c.label()} (${b.test.firstYear}–${b.test.lastYear}${b.season ? ', ' + seasonLabel(b.season) : ''}) looks <b>${dir(b.test)}</b>; this answer looks <b>${dir(a.test)}</b>. Over the ${pair.n} years both have (${pair.first}–${pair.last}): ${dir(pair.b)} vs ${dir(pair.a)}.`, `换一套数据问同一个问题：${c.label()}（${b.test.firstYear}–${b.test.lastYear}${b.season ? '，' + seasonLabel(b.season) : ''}）看起来<b>${dir(b.test)}</b>；本页答案看起来<b>${dir(a.test)}</b>。在双方都有的 ${pair.n} 年（${pair.first}–${pair.last}）里：${dir(pair.b)} 对 ${dir(pair.a)}。`)} ${agree ? t('They agree on the direction.', '两者方向一致。') : t('They disagree, so be extra careful.', '两者方向不一致，结论要更谨慎。')}</p>`;
 }
+function neutralClues() {
+  const ids = (CLUES[state.site] ?? DEFAULT_CLUES).map(([id]) => id).filter(id => id !== state.variable);
+  if (!ids.includes('T2M') && state.variable !== 'T2M') ids.unshift('T2M');
+  return ids.slice(0, 3).map(id => [id, () => (id === 'T2M' ? t('Has the air temperature in the same region changed?', '同一区域的气温有没有变化？') : t('Does this measure show a trend too?', '这项指标是否也有趋势？'))]);
+}
 function renderClues() {
   const box = $('clues');
   if (!state.site || !result()?.test || $('after')?.hidden !== false) { $('step5').hidden = true; $('step6').hidden = true; return; }
   $('step5').hidden = false;
   renderReport();
   const v = VAR(state.variable);
-  const list = (CLUES[state.site] ?? DEFAULT_CLUES).filter(([id]) => id !== state.variable);
+  // The story-led leads belong to the ready-made cases; free picks get neutral questions.
+  const list = state.caseId ? (CLUES[state.site] ?? DEFAULT_CLUES).filter(([id]) => id !== state.variable) : neutralClues();
   box.innerHTML = `<p class="hint">${t('This tool answers whether, which way, how much and how sure — not why. A detective’s next step is to collect clues: did other places, or other things, change too?', '这个工具回答"有没有变、往哪变、变多少、有多确定"，不判断原因。侦探的下一步是找线索：别的地方、别的东西有没有一起变？')}</p>
   <div class="clue-grid">
     <div class="card clue"><h3>${t(`Clue 1: ${v.short()} in other places`, `线索 1：其他地方的${v.short()}`)}</h3>${compareRows(v.id)}</div>
@@ -698,21 +714,70 @@ const QUIZ = {
     };
   },
 };
-const quizFor = () => (QUIZ[state.caseId] && CASES.some(c => c.id === state.caseId && c.site === state.site && c.variable === state.variable) ? QUIZ[state.caseId]() : null);
+// Every other place and measure gets a general check built from its own result:
+// "not proven" read as "no change", or a supported trend read as "every single year".
+function genericQuiz() {
+  const r = result(), v = VAR(state.variable);
+  if (!r?.test) return null;
+  const T = r.test, place = shortSite(state.site), u = v.unit, dp = v.dp;
+  // Say what each year's value is, so a summer-only series is not read as the whole year.
+  const name = v.annual === 'total' ? t(`the yearly total of ${v.short()}`, `${v.short()}年总量`) : r.season ? t(`the ${seasonLabel(r.season)} average of ${v.short()}`, `${seasonLabel(r.season)}平均${v.short()}`) : t(`the yearly average of ${v.short()}`, `年平均${v.short()}`);
+  const per = x => `${sign(x * 10, dp)} ${u}`;
+  const yrs = `${T.firstYear}–${T.lastYear}${t('', ' 年')}${r.season ? t(`, ${seasonLabel(r.season)} only`, `，只看 ${seasonLabel(r.season)}`) : ''}`;
+  const up = T.slope > 0;
+  if (r.verdict === 'unsure') {
+    return {
+      claim: t(`“NASA data show that ${name} in ${place} has not changed.”`, `"NASA 数据显示，${place}${name}没有变化。"`),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: no significant trend was found', '签：没找到显著趋势'), t(`“Not proven” does not mean “no change”. The estimate leans ${up ? 'up' : 'down'} (${per(T.slope)} per decade). ${whyUnsure(r, v)}`, `"证据不足"不等于"没变化"。估计值偏向${up ? '上升' : '下降'}（每十年 ${per(T.slope)}）。${whyUnsure(r, v)}`)],
+        ['b', t('No: “not proven” is not the same as “no change”', '不签："证据不足"不等于"没有变化"'), t('Right. The honest answer is “not proven either way yet”.', '对。诚实的回答是"两个方向都还证明不了"。')],
+        ['c', t(`No: it is clearly ${up ? 'going up' : 'going down'}`, `不签：它明显在${up ? '上升' : '下降'}`), t(`The estimate leans that way, but it does not reach this tool’s threshold for support, so “clearly” goes too far the other way.`, `估计值确实偏向这个方向，但没有达到本工具的统计支持阈值，所以"明显"同样说过头了。`)],
+      ],
+      verified: t(`Over ${yrs}, ${name} in ${place} leans ${up ? 'up' : 'down'} (about ${per(T.slope)} per decade), but the trend does not reach this tool’s threshold for support. ${whyUnsure(r, v)} That is “not proven”, not “no change”.`, `在 ${yrs}，${place}${name}偏向${up ? '上升' : '下降'}（每十年约 ${per(T.slope)}），但趋势没有达到本工具的统计支持阈值。${whyUnsure(r, v)}这是"证据不足"，不是"没有变化"。`),
+    };
+  }
+  const rows = r.rows.filter(x => x.complete);
+  let steps = 0, against = 0;
+  rows.forEach((x, i) => { if (i && x.year === rows[i - 1].year + 1) { steps += 1; if ((x.value - rows[i - 1].value) * T.slope < 0) against += 1; } });
+  if (!against) return null;
+  return {
+    claim: t(`“NASA data show that ${name} in ${place} has gone ${up ? 'up' : 'down'} every single year since ${T.firstYear}.”`, `"NASA 数据显示，${place}${name}从 ${T.firstYear} 年起每一年都在${up ? '上升' : '下降'}。"`),
+    answer: 'b',
+    opts: [
+      ['a', t(`Yes: the ${up ? 'rise' : 'fall'} is supported`, `签：${up ? '上升' : '下降'}有证据支持`), t(`The trend is supported, but a trend is not “every year”. In ${against} of the ${steps} steps from one year to the next it moved the other way.`, `趋势确实有证据支持，但趋势不等于"每一年"。在 ${steps} 次相邻年份的比较里，有 ${against} 次是反方向变化。`)],
+      ['b', t(`No: the ${up ? 'rise' : 'fall'} is supported, but not every single year`, `不签：${up ? '上升' : '下降'}有证据支持，但不是每一年都这样`), t('Right. A trend is the long-run direction; single years still go up and down around it.', '对。趋势是长期方向，单个年份仍会围绕它上下起伏。')],
+      ['c', t('No: it has not changed', '不签：它没有变化'), t(`It has: the trend is supported (${per(T.slope)} per decade). The problem with the claim is “every single year”.`, `变了：趋势有证据支持（每十年 ${per(T.slope)}）。这句话的问题在"每一年"。`)],
+    ],
+    verified: t(`Over ${yrs}, ${name} in ${place} went ${up ? 'up' : 'down'} by about ${Math.abs(T.slope * 10).toFixed(Math.max(0, dp))} ${u} per decade, and the trend is supported. But in ${against} of the ${steps} steps from one year to the next it moved the other way: a trend is the long-run direction, not every year.`, `在 ${yrs}，${place}${name}每十年约${up ? '上升' : '下降'} ${Math.abs(T.slope * 10).toFixed(Math.max(0, dp))} ${u}，趋势有证据支持。但在 ${steps} 次相邻年份的比较里，有 ${against} 次是反方向变化：趋势是长期方向，不是每一年。`),
+  };
+}
+const quizKey = () => state.caseId ?? `${state.site}|${state.variable}`;
+const quizFor = () => (state.caseId && QUIZ[state.caseId] ? QUIZ[state.caseId]() : state.caseId ? null : genericQuiz());
 const FC_POS = { cairohaze: 1, delhi: 0, moscowfast: 2, sg: 0, nuukwarm: 2, manaus: 1, delhisun: 2, london: 0, moscowhaze: 1, cairo: 2, londonrain: 0, nuukgreen: 1 };
+// Right under the verdict: the final check sits far down the page, so point to it.
+function jumpToCheck() {
+  return quizFor() ? `<p><button type="button" class="btn fc-jump" data-goto="finalCheck">🖋 ${t('Last step: would you sign this claim? Jump to the final check ↓', '最后一关：这句话你敢签字吗？跳到判断题 ↓')}</button></p>` : '';
+}
+function basisLine() {
+  const r = result(), v = VAR(state.variable);
+  if (!r?.test) return '';
+  const each = v.annual === 'total' ? t('yearly totals', '年总量') : r.season ? t(`the ${seasonLabel(r.season)} average of each year`, `每年 ${seasonLabel(r.season)} 的平均`) : t('yearly averages', '年平均');
+  return `<p class="cap">${t(`Judged on: ${r.test.firstYear}–${r.test.lastYear}, ${each}.`, `判断依据：${r.test.firstYear}–${r.test.lastYear} 年，${each}。`)}</p>`;
+}
 function finalCheck() {
   const Q = quizFor();
   if (!Q) return '';
   return `<section class="final-check" id="finalCheck">${finalCheckInner(Q)}</section>`;
 }
 function finalCheckInner(Q = quizFor()) {
-  const s = state.quiz[state.caseId] ?? {};
+  const s = state.quiz[quizKey()] ?? {};
   const head = `<h3>🕵️ ${t('Final check: would you sign this?', '最后一关：这句话你敢签字吗？')}</h3>
     <p class="hint">${t('Someone posts this online, citing this case. Judge it like a detective.', '有人在网上发了这句话，引用的正是这个案子。像侦探一样判断它。')}</p>
-    <blockquote class="claim">${esc(Q.claim)}</blockquote>`;
+    <blockquote class="claim">${esc(Q.claim)}</blockquote>${basisLine()}`;
   // Rotate the options so the right answer sits first, second or third equally often across cases.
   const n = Q.opts.length, ai = Q.opts.findIndex(([id]) => id === Q.answer);
-  const k = ((ai - (FC_POS[state.caseId] ?? ai)) % n + n) % n;
+  const k = ((ai - (FC_POS[quizKey()] ?? [...quizKey()].reduce((m, c) => m + c.charCodeAt(0), 0) % n)) % n + n) % n;
   const opts = `<div class="fc-opts">${[...Q.opts.slice(k), ...Q.opts.slice(0, k)].map(([id, label]) => {
     const cls = !s.choice ? '' : id === Q.answer ? ' right' : id === s.choice ? ' wrong' : ' dim';
     return `<button type="button" class="fc-btn${cls}" data-fc="${id}" ${s.choice ? 'disabled' : ''}>${esc(label)}</button>`;
@@ -745,7 +810,7 @@ function reportModel() {
   const finding = (q.mystery || conflict) && pair
     ? t(`Two sources disagree over the same ${pair.n} years (${pair.first}–${pair.last}): the NASA model says ${dec(pair.a.slope)}; the city’s weather station says ${dec(pair.b.slope)}.${pair.a.p >= 0.05 && pair.b.p >= 0.05 ? ' Neither is proven on its own, so not even the direction is settled.' : ''}`, `在相同的 ${pair.n} 年（${pair.first}–${pair.last}）里，两套数据意见相反：NASA 模型是${dec(pair.a.slope)}；城里的气象站是${dec(pair.b.slope)}。${pair.a.p >= 0.05 && pair.b.p >= 0.05 ? '两者单独看都证据不足，所以连方向都还定不下来。' : ''}`)
     : r.verdict === 'unsure'
-      ? t(`Not proven. The data moves ${dec(T.slope)}, but the years swing too much to call it a significant trend.`, `证据不足。数据显示${dec(T.slope)}，但年份之间起伏太大，还不能算显著趋势。`)
+      ? `${t(`Not proven. The data moves ${dec(T.slope)}.`, `证据不足。数据显示${dec(T.slope)}。`)} ${whyUnsure(r, v)}`
       : t(`${verdictWord(v, r.verdict)[0].toUpperCase() + verdictWord(v, r.verdict).slice(1)}: ${dec(T.slope)}, a significant trend.`, `${verdictWord(v, r.verdict)}：${dec(T.slope)}，趋势显著。`);
   const evidence = [
     [t('Years', '年份'), `${T.firstYear}–${T.lastYear} (${T.n} ${t('complete years', '个完整年份')})${r.season ? ', ' + seasonLabel(r.season) : ''}`],
@@ -777,7 +842,7 @@ function reportModel() {
   if (T.n < FEW_YEARS) open.push(t(`Only ${T.n} complete years — the result is less stable.`, `只有 ${T.n} 个完整年份，结果不够稳定。`));
   open.push(t('What caused the change? This tool shows what changed, not why.', '变化的原因是什么？本工具只回答变了什么，不回答为什么。'));
   const kind = q.mystery || conflict ? 'conflict' : r.verdict === 'unsure' ? 'unproven' : 'confirmed';
-  const Q = quizFor(), qs = state.quiz[state.caseId];
+  const Q = quizFor(), qs = state.quiz[quizKey()];
   const verified = Q && qs?.adopted ? { text: Q.verified, claim: Q.claim, first: Q.opts.find(([id]) => id === qs.choice)?.[1], ok: qs.choice === Q.answer } : null;
   return { title: q.text, place: siteName(state.site), variable: v.name(), guessText, finding, evidence, checks, clues, open, kind, note: q.note, verified };
 }
@@ -862,8 +927,10 @@ function goStep(id) {
 function pick({ site, variable, caseId = null, guess = null, scroll = true }) {
   if (site) state.site = site;
   if (variable) state.variable = variable;
-  state.caseId = caseId; state.guess = guess; state.win = null;
-  if (caseId) delete state.quiz[caseId];
+  // A place and measure that match a ready-made case open that case, wherever they were picked.
+  state.caseId = caseId ?? CASES.find(c => c.site === state.site && c.variable === state.variable)?.id ?? null;
+  state.guess = guess; state.win = null;
+  delete state.quiz[quizKey()];
   renderFlow();
   if (scroll) $('step4').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -877,16 +944,16 @@ document.addEventListener('click', e => {
     if (go.dataset.goto === 'tamper' && $('tamper')) { window.scrollTo({ top: $('tamper').getBoundingClientRect().top + scrollY - 110, behavior: 'smooth' }); flash($('tamper')); return; }
     const el = $(go.dataset.goto);
     el?.scrollIntoView({ behavior: 'smooth', block: go.dataset.goto === 'guide' ? 'center' : 'start' });
-    if (go.dataset.goto === 'guide') { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+    if (go.dataset.goto === 'guide' || go.dataset.goto === 'finalCheck') flash(el);
     return;
   }
   if (e.target.closest('#resetWindow')) { state.win = null; updateStartYear(true); return; }
   const dot = e.target.closest('.rb-dot');
   if (dot) { state.win = Number(dot.dataset.start); updateStartYear(true); $('tamper')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const fc = e.target.closest('[data-fc]');
-  if (fc && !fc.disabled) { state.quiz[state.caseId] = { choice: fc.dataset.fc }; refreshFinalCheck(); return; }
-  if (e.target.closest('#adoptClaim')) { state.quiz[state.caseId].adopted = true; refreshFinalCheck(); return; }
-  if (e.target.closest('#fcRetry')) { delete state.quiz[state.caseId]; refreshFinalCheck(); return; }
+  if (fc && !fc.disabled) { state.quiz[quizKey()] = { choice: fc.dataset.fc }; refreshFinalCheck(); return; }
+  if (e.target.closest('#adoptClaim')) { state.quiz[quizKey()].adopted = true; refreshFinalCheck(); return; }
+  if (e.target.closest('#fcRetry')) { delete state.quiz[quizKey()]; refreshFinalCheck(); return; }
   if (e.target.closest('#printReport')) { window.print(); return; }
   if (e.target.closest('#downloadReport')) { downloadReport(); return; }
   const el = e.target.closest('[data-lang],[data-case],[data-topic],[data-ptype],[data-pick],[data-site],[data-var],[data-guess]');
@@ -898,7 +965,7 @@ document.addEventListener('click', e => {
   if (d.ptype) { state.ptype = d.ptype; renderGuide(); return; }
   if (d.pick) { const [site, variable] = d.pick.split('|'); pick({ site, variable }); return; }
   if (d.guess) { state.guess = d.guess; renderAnswer(); return; }
-  if (d.hero) { pick({ site: d.site, variable: 'T2M' }); return; }
+  if (d.hero) { const c = CASES.find(x => x.site === d.site && x.variable === 'T2M'); pick({ site: d.site, variable: 'T2M', caseId: c?.id ?? null }); return; }
   if (d.site) { pick({ site: d.site, guess: d.keep ? 'skip' : null, scroll: false }); if (!d.keep) flash($('step3')); return; }
   // Choosing what to measure only selects it; the 'See the answer' button moves on.
   if (d.var) { pick({ variable: d.var, scroll: false }); flash($('seeAnswer')); }
