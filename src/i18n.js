@@ -7,8 +7,9 @@ export const t = (en, zh) => (lang === 'zh' ? zh : en);
 
 // Static page text, keyed by data-t attributes in index.html.
 export const STATIC = {
-  brand: ['Trend Detective', '趋势侦探'],
-  heroTitle: ['TREND DETECTIVE', '趋势侦探'],
+  brand: ['Case Closed?', '结案了吗？'],
+  heroTitle: ['CASE CLOSED?', '结案了吗？'],
+  heroTag: ['Investigate Earth’s changes. Decide what the evidence supports.', '调查地球的变化，判断证据到底支持什么。'],
   cwTitle: ['Case wall: eight cities, each with 35 years of temperature stripes, pinned to one case file', '案件墙：8 个城市，每个城市 35 年的温度条纹，钉在同一份案卷上'],
   openCase: ['Open a case file', '打开一个案卷'],
   openCaseSub: ['12 ready-made cases', '12 个现成的案子'],
@@ -17,8 +18,8 @@ export const STATIC = {
   mapBtn: ['Pick a city on the map', '在地图上选城市'],
   mapBtnSub: ['8 cities · 7 things to measure', '8 座城市 · 7 种测量'],
   swipeHint: ['← Swipe to see every city →', '← 左右滑动查看所有城市 →'],
-  heroLede: ['Is Earth changing? Where? By how much? Pick a case, write down your guess, then let 35 years of NASA satellite and model data testify — and check whether the change is real or just year-to-year noise. Tap any card to start with that city.',
-    '地球在变吗？变在哪里？变了多少？选一个案子，写下你的推测，再让 NASA 卫星和模型的 35 年数据来作证，看看变化是真的，还是只是年份间的起伏。点任意一张卡片，就从那个城市开始调查。'],
+  heroLede: ['You are the trend detective. Is Earth changing? Where? By how much? Pick a case, write down your guess, then let NASA satellite and model data testify — and check whether the change is real or just year-to-year noise. Tap any card to start with that city.',
+    '你就是趋势侦探。地球在变吗？变在哪里？变了多少？选一个案子，写下你的推测，再让 NASA 卫星和模型数据来作证，看看变化是真的，还是只是年份间的起伏。点任意一张卡片，就从那个城市开始调查。'],
   tourBtn: ['Watch a 30-second example', '看 30 秒示范'],
   tourBtnSub: ['30-second guided tour of two cases', '30 秒带你走一遍两个案子'],
   s1: ['Ask a question', '提一个问题'],

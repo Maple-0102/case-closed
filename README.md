@@ -1,4 +1,4 @@
-# Trend Detective
+# Case Closed? (previously titled Trend Detective)
 
 A tool for the NASA Space Apps Challenge 2026 challenge **"Be An Earth System Trend Detective!"** (Singapore local event, virtual).
 

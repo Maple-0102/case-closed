@@ -1,4 +1,4 @@
-// Trend Detective page: question -> place -> variable -> guess -> replay -> answer -> clues.
+// Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
 import { t, setLang, getLang, STATIC } from './i18n.js';
@@ -638,7 +638,7 @@ function reportHtml(m) {
   const li = xs => xs.map(x => `<li>${esc(x)}</li>`).join('');
   const date = new Date().toISOString().slice(0, 10);
   return `<article class="report">
-    <header class="rep-head"><div><p class="rep-kicker">${t('TREND DETECTIVE · CASE REPORT', '趋势侦探 · 结案报告')}</p><h3>${esc(m.title)}</h3>
+    <header class="rep-head"><div><p class="rep-kicker">${t('CASE CLOSED? · CASE REPORT', '结案了吗？· 结案报告')}</p><h3>${esc(m.title)}</h3>
       <p class="rep-meta">${esc(m.place)} · ${esc(m.variable)} · ${date}</p></div>${stamp(m.kind)}</header>
     <section><h4>${t('1. Your hypothesis', '1. 你的推测')}</h4><p>${esc(m.guessText)}</p></section>
     <section><h4>${t('2. What the data says', '2. 数据怎么说')}</h4><p class="rep-finding">${esc(m.finding)}</p>
@@ -664,10 +664,10 @@ function renderReport() {
 function downloadReport() {
   const m = reportModel();
   const css = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules].map(x => x.cssText); } catch { return []; } }).filter(x => /^(:root|\.report|\.rep-|\.stamp|@keyframes stamp|body)/.test(x) || x.includes('.report') || x.includes('.stamp')).join('\n');
-  const html = `<!doctype html><html lang="${getLang() === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(m.title)} — Trend Detective</title><style>${css}\nbody{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif}</style></head><body>${reportHtml(m)}</body></html>`;
+  const html = `<!doctype html><html lang="${getLang() === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(m.title)} — Case Closed?</title><style>${css}\nbody{margin:0;padding:24px;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif}</style></head><body>${reportHtml(m)}</body></html>`;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-  a.download = `trend-detective-${state.site}-${state.variable.toLowerCase()}.html`;
+  a.download = `case-closed-${state.site}-${state.variable.toLowerCase()}.html`;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }

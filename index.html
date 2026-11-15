@@ -1,24 +1,24 @@
 <!doctype html>
-<!-- Trend Detective. Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author. -->
+<!-- Case Closed? (previously titled Trend Detective). Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trend Detective</title>
-<meta name="description" content="Be a data detective with NASA Earth science data: is it changing, which way, by how much, and how sure are we?">
+<title>Case Closed? Investigate Earth’s changes</title>
+<meta name="description" content="Case Closed? Investigate Earth’s changes with NASA Earth data, and decide what the evidence supports: is it changing, which way, by how much, and how sure are we?">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#f4ecdc">
 <!-- Preview when the link is shared -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="Trend Detective">
-<meta property="og:description" content="Is Earth changing? Guess, then let 35 years of NASA satellite and model data testify, and learn to tell a real trend from year-to-year noise.">
+<meta property="og:title" content="Case Closed? Investigate Earth’s changes">
+<meta property="og:description" content="Investigate Earth’s changes. Decide what the evidence supports. Explore NASA Earth data through interactive investigations, and learn to tell a real trend from year-to-year noise.">
 <meta property="og:url" content="https://maple-0102.github.io/trend-detective/">
 <meta property="og:image" content="https://maple-0102.github.io/trend-detective/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Trend Detective case wall: eight cities with temperature stripes pinned to one case file">
+<meta property="og:image:alt" content="Case Closed? home page, a case wall: eight cities with temperature stripes pinned to one case file">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="styles.css?v=20261116c">
+<link rel="stylesheet" href="styles.css?v=20261116d">
 </head>
 <body>
 <header class="top">
@@ -38,6 +38,7 @@
     <p class="swipe-hint" data-t="swipeHint"></p>
     <div class="hero-text">
       <h1 class="type-title" data-t="heroTitle"></h1>
+      <p class="hero-tag" data-t="heroTag"></p>
       <p class="lede" data-t="heroLede"></p>
       <div class="hero-actions" id="heroActions">
         <button type="button" class="entry" id="tourBtn"><span class="entry-ic" aria-hidden="true">▶</span><span class="entry-tx"><b data-t="tourBtn"></b><small data-t="tourBtnSub"></small></span></button>
@@ -108,6 +109,6 @@
 </div>
 
 <script src="vendor/topojson-client.min.js"></script>
-<script type="module" src="src/app.js?v=20261116c"></script>
+<script type="module" src="src/app.js?v=20261116d"></script>
 </body>
 </html>

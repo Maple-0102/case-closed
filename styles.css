@@ -505,3 +505,7 @@ body { background: var(--bg); color: var(--ink); }
 .verified p { margin: 0 0 8px; }
 .adopted { font-weight: 800; color: #1d6b36; }
 .rep-verified { border-left: 4px solid #1d6b36; padding-left: 10px; }
+
+/* tagline under the title */
+.hero-tag { margin: -2px 0 12px; font-family: var(--type); font-weight: 700; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--ink); }
+.hero-text .type-title { margin-left: auto; margin-right: auto; }
