@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116x';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116x';
-import { trendTest } from './stats.js?v=20261116x';
-import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116x';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116x';
-import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116x';
-import { loadLand, mapSvg } from './map.js?v=20261116x';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116x';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116z';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116z';
+import { trendTest } from './stats.js?v=20261116z';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116z';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116z';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116z';
+import { loadLand, mapSvg } from './map.js?v=20261116z';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116z';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1041,8 +1041,8 @@ const TOUR = [
   { el: 'step4', text: () => t('Case 2: is the haze over Cairo thinning? Over all the years, the satellite says: not proven.', '案子 2：开罗上空的雾霾在变薄吗？看全部年份，卫星的回答是：证据不足。'), act: () => { pick({ site: 'cairo', variable: 'AOD', caseId: 'cairohaze', guess: 'skip', scroll: false }); later(350, () => $('mainChart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }, noScroll: true, ms: 3000 },
   { el: 'tamper', text: () => t('Now let’s fake the evidence: keep only the years we like… and watch the stamp.', '现在试着伪造证据：只留下我们喜欢的年份……注意看印章。'), act: () => tourDrag(2009), block: 'center', ms: 4600 },
   { el: 'step4', text: () => t('Both are true: the 2009–2025 window passes, 2001–2025 does not. The trap is quoting one as the other. Every case ends with a detective’s note.', '两者都对：2009–2025 年的窗口通过检验，2001–2025 年的不通过。陷阱是把其中一个说成另一个。每个案子最后都有一段侦探笔记。'), act: () => document.querySelector('#answer .det-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), noScroll: true, ms: 3200 },
-  { el: 'step6', text: () => t('Close the case: one page with your guess, the evidence and the clues, to print or share.', '结案：一页纸写下你的推测、证据和线索，可以打印或分享。'), act: () => $('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), noScroll: true, ms: 3000 },
-  { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 3200 },
+  { el: 'finalCheck', text: () => t('Final check: would you sign this claim? A wrong answer gets the reason, and a verified statement goes into your case report.', '最后一关：这句话你敢签字吗？答错会告诉你原因，核对后的结论会写进你的结案报告。'), act: () => { $('finalCheck')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); later(1300, () => document.querySelector('#finalCheck [data-fc="a"]')?.click()); }, noScroll: true, ms: 3800 },
+  { el: 'heroActions', text: () => t('Your turn! Open a case file, build your own case, or pick a city on the map.', '轮到你了！打开一个案卷、自己组一个案子，或者在地图上选一座城市。'), act: () => { $('heroActions').scrollIntoView({ behavior: 'smooth', block: 'center' }); flash($('heroActions')); }, noScroll: true, ms: 2600 },
 ];
 function stopTour() { clearTimeout(state.tour); state.tourDrag.forEach(clearTimeout); state.tourDrag = []; state.tour = null; $('tourBar').hidden = true; document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
 function tourStep(i) {

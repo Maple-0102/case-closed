@@ -1,6 +1,6 @@
 // Cases, guiding questions, clues and glossary.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t } from './i18n.js?v=20261116x';
+import { t } from './i18n.js?v=20261116z';
 
 export const SITE_NAMES = {
   singapore: ['Singapore', '新加坡'], delhi: ['New Delhi', '新德里'], cairo: ['Cairo', '开罗'],
