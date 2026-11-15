@@ -25,7 +25,7 @@ const seasonLabel = m => {
 
 // Fewer usable years than this gets an explicit "less stable" note.
 const FEW_YEARS = 20;
-const state = { data: null, results: {}, site: null, variable: 'T2M', caseId: null, guess: null, topic: null, ptype: null, cancel: null, tour: null, tourDrag: [], win: null, checks: {} };
+const state = { quiz: {}, data: null, results: {}, site: null, variable: 'T2M', caseId: null, guess: null, topic: null, ptype: null, cancel: null, tour: null, tourDrag: [], win: null, checks: {} };
 const result = (site = state.site, vid = state.variable) => state.results[vid]?.[site];
 const verdictWord = (v, vd) => (vd === 'up' && v.goingUp ? v.goingUp() : vd === 'down' && v.goingDown ? v.goingDown() : t('Not sure yet', '还说不准'));
 
@@ -206,6 +206,7 @@ function renderMystery(box, q, r, v) {
       ${detectiveNote(q)}
       <div class="callout"><h3>${t('Case open: why would they disagree?', '案子还没破：为什么两者会不一样？')}</h3>${neither ? `<p>${t('Over the same years, neither source has enough evidence on its own, and they point in opposite directions. From these data we cannot even say which way New Delhi is heading. That is why the case stays open; the leads below are where a detective would look next.', '在相同年份里，两套数据单独看都证据不足，而且方向相反。凭这些数据，我们连新德里往哪个方向变都说不准，所以这个案子还没结；下面的线索是侦探接下来要查的方向。')}</p>` : ''}<p>${t('In 7 of our 8 cities the model and the thermometer agree closely, so this is unusual. The station measures one spot in a fast-growing city; the model averages a 110 km region that also takes in large areas of irrigated farmland, and it can miss local effects. Neither number is “the truth” on its own.', '在我们的 8 个城市里，有 7 个模型和温度计非常接近，所以这里很不寻常。气象站测的是一座快速扩张的城市里的一个点；模型是 110 公里区域的平均，里面还包括大片灌溉农田，也可能漏掉本地因素。单看哪一个数字都不是"真相"。')}</p></div>
       ${startYearBlock(r, v)}
+      ${finalCheck()}
       <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
       <details class="stats"><summary>${t('The model’s answer in detail', '模型答案的细节')}</summary>${parts(r, v)}${statsTable(r, v).replace(/^<details class="stats"><summary>[^<]*<\/summary>/, '').replace(/<\/details>$/, '')}</details>
     </div></div>`;
@@ -399,6 +400,7 @@ function renderAnswer() {
       <p class="cap">${t('Data:', '数据：')} ${srcLabel(v)} (${via}), ${T.n} ${t('years', '年')}.</p>
       ${r.verdict === 'unsure' ? `<div class="callout"><h3>${t('“Not sure yet” is a finding too', '"还说不准"也是发现')}</h3><p>${t(`The years swing a lot here, so ${T.n} years are not enough to decide. That is not the same as “no change”: a longer record, or another variable, might make it clear.`, `这里年份之间起伏很大，${T.n} 年的数据还不够下结论。这不等于"没有变化"：更长的记录，或者换一个变量，可能就能看清。`)}</p></div>` : ''}
       ${startYearBlock(r, v)}
+      ${finalCheck()}
       <button type="button" class="link-btn" id="replayBtn">${t(`▶ Replay the ${T.n} years`, `▶ 重新回放 ${T.n} 年`)}</button>
       ${statsTable(r, v)}</div></div>`;
   updateStartYear();
@@ -505,6 +507,85 @@ function renderClues() {
   </div>`;
 }
 
+// ---------- final check: would you sign this claim? ----------
+// Three cases end with a claim to judge. The verified statement is built from the same results
+// shown on the page, and the report labels it as checked against the data, not as the user's words.
+const dec10 = (x, dp) => sign(x * 10, dp);
+const QUIZ = {
+  cairohaze: () => {
+    const c = checkFor('cairo', 'AOD'), first = c.windows.find(w => w.significant)?.start;
+    return {
+      claim: t('“NASA satellite data prove the haze over Cairo has been thinning since 2001.”', '"NASA 卫星数据证明，开罗上空的雾霾从 2001 年起一直在变薄。"'),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that only holds if you start in ${first} or later, and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是从 ${first} 年或更晚起算才成立的结果，却说成全部年份都这样。`)],
+        ['b', t('No: it is only supported for the later years', '不签：只有后面那些年份才有证据支持'), t('Right. The problem is the years, not the satellite: the decline is supported only in the later windows.', '对。问题出在年份，不在卫星：只有后面几段年份的下降有证据支持。')],
+        ['c', t('No: the haze is actually getting thicker', '不签：雾霾其实在变厚'), t('The trend points down from every start year, not up. What is wrong with the claim is the years it covers, not the direction.', '从每个起点算，趋势都是往下，不是往上。这句话错在它覆盖的年份，不在方向。')],
+      ],
+      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Counting only from ${first} or later, the decline is supported.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。只从 ${first} 年或更晚起算，下降才有证据支持。`),
+    };
+  },
+  delhi: () => {
+    const r = result('delhi', 'T2M'), pair = stationPair(r), a = dec10(pair.a.slope, 2), b = dec10(pair.b.slope, 2);
+    return {
+      claim: t('“NASA data show that New Delhi is getting cooler.”', '"NASA 数据显示，新德里在变冷。"'),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: NASA’s model shows a cooling trend', '签：NASA 模型显示在降温'), t(`The model does lean that way. But over the same ${pair.n} years the city’s own thermometer points the other way, and neither trend is proven over those years. One source is not the whole story.`, `模型确实偏向降温。但在相同的 ${pair.n} 年里，城里的温度计方向相反，而且这几年里两者都证据不足。一套数据不是全部真相。`)],
+        ['b', t('No: two sources disagree, so the direction is not settled', '不签：两套数据意见相反，方向还定不下来'), t('Right. When independent sources point in opposite directions and neither is proven, the honest answer is “not settled”.', '对。两套独立数据方向相反、又都没被证实时，诚实的回答就是"还没定论"。')],
+        ['c', t('No: New Delhi is clearly warming', '不签：新德里明显在变暖'), t('The thermometer leans towards warming, but it is not proven either, and the model leans the other way. “Clearly” is more than these data can say.', '温度计偏向变暖，但同样证据不足，而模型方向相反。"明显"超出了这些数据能说的范围。')],
+      ],
+      verified: t(`Over the same ${pair.n} years (${pair.first}–${pair.last}), NASA’s MERRA-2 model (${a} °C per decade) and the city’s weather station (${b} °C per decade) point in opposite directions, and neither trend is proven. These data do not settle whether New Delhi is warming or cooling.`, `在相同的 ${pair.n} 年（${pair.first}–${pair.last}）里，NASA MERRA-2 模型（每十年 ${a} °C）和城里的气象站（每十年 ${b} °C）方向相反，而且两者都证据不足。凭这些数据，定不了新德里是在变暖还是变冷。`),
+    };
+  },
+  moscowfast: () => {
+    const T = result('moscow', 'T2M').test;
+    const g = trendTest(state.globalRows.filter(x => x.complete && x.year >= T.firstYear && x.year <= T.lastYear));
+    const d = x => dec10(x, 2), ratio = (T.slope / g.slope).toFixed(1);
+    const range = `${d(T.ciLow)} … ${d(T.ciHigh)}`, grange = `${d(g.ciLow)} … ${d(g.ciHigh)}`;
+    return {
+      claim: t('“Moscow is warming twice as fast as the planet, and NASA data prove it.”', '"莫斯科升温速度是全球的两倍，NASA 数据证明了这一点。"'),
+      answer: 'b',
+      opts: [
+        ['a', t(`Yes: ${d(T.slope)} is about twice ${d(g.slope)}`, `签：${d(T.slope)} 大约是 ${d(g.slope)} 的两倍`), t(`The arithmetic is right, but both numbers are estimates with ranges. Moscow’s 95% range is ${range} °C per decade, which overlaps the global range (${grange}). The ratio itself was never tested, so “prove” goes too far.`, `算术没错，但两个数都是带范围的估计。莫斯科的 95% 范围是每十年 ${range} °C，和全球的范围（${grange}）有重叠。这个倍数本身从没检验过，所以"证明"说过头了。`)],
+        ['b', t('Partly: the warming is supported, “twice as fast” is not proven', '只签一半：变暖有证据支持，"两倍"没被证明'), t('Right. Keep the part the test supports, and say “about” and “estimated” for the part it does not.', '对。保留检验支持的部分，没检验过的部分要说"大约""估计"。')],
+        ['c', t('No: Moscow’s warming is not proven', '不签：莫斯科变暖没被证实'), t(`Moscow’s warming over ${T.firstYear}–${T.lastYear} is supported. What is not proven is the “twice as fast” part.`, `莫斯科在 ${T.firstYear}–${T.lastYear} 年的变暖是有证据支持的。没被证明的是"两倍"那部分。`)],
+      ],
+      verified: t(`Moscow’s warming from ${T.firstYear} to ${T.lastYear} is supported: about ${d(T.slope)} °C per decade (95% range ${range}). That estimate is about ${ratio} times the global estimate for the same years (${d(g.slope)} °C per decade, NASA GISTEMP), but the ratio was not itself tested.`, `莫斯科 ${T.firstYear}–${T.lastYear} 年的变暖有证据支持：每十年约 ${d(T.slope)} °C（95% 范围 ${range}）。这个估计值大约是同期全球估计值（每十年 ${d(g.slope)} °C，NASA GISTEMP）的 ${ratio} 倍，但这个倍数本身没有检验过。`),
+    };
+  },
+};
+const quizFor = () => (QUIZ[state.caseId] && CASES.some(c => c.id === state.caseId && c.site === state.site && c.variable === state.variable) ? QUIZ[state.caseId]() : null);
+function finalCheck() {
+  const Q = quizFor();
+  if (!Q) return '';
+  return `<section class="final-check" id="finalCheck">${finalCheckInner(Q)}</section>`;
+}
+function finalCheckInner(Q = quizFor()) {
+  const s = state.quiz[state.caseId] ?? {};
+  const head = `<h3>🕵️ ${t('Final check: would you sign this?', '最后一关：这句话你敢签字吗？')}</h3>
+    <p class="hint">${t('Someone posts this online, citing this case. Judge it like a detective.', '有人在网上发了这句话，引用的正是这个案子。像侦探一样判断它。')}</p>
+    <blockquote class="claim">${esc(Q.claim)}</blockquote>`;
+  const opts = `<div class="fc-opts">${Q.opts.map(([id, label]) => {
+    const cls = !s.choice ? '' : id === Q.answer ? ' right' : id === s.choice ? ' wrong' : ' dim';
+    return `<button type="button" class="fc-btn${cls}" data-fc="${id}" ${s.choice ? 'disabled' : ''}>${esc(label)}</button>`;
+  }).join('')}</div>`;
+  if (!s.choice) return head + opts;
+  const ok = s.choice === Q.answer, why = Q.opts.find(([id]) => id === s.choice)[2];
+  return `${head}${opts}
+    <p class="badge ${ok ? 'ok' : 'miss'}">${ok ? '🎯 ' + t('Good call.', '判断正确。') : '😮 ' + t('Not quite.', '还差一点。')}</p>
+    <p>${esc(why)}</p>
+    <div class="verified"><h4>✅ ${t('Verified conclusion', '核对后的结论')}</h4><p>${esc(Q.verified)}</p>
+      <p class="cap">${t('Checked against the same data and tests shown on this page.', '用本页同样的数据和检验核对过。')}</p>
+      ${s.adopted ? `<p class="adopted">✓ ${t('Added to your case report.', '已加入你的结案报告。')} <button type="button" class="link-btn" data-goto="step6">${t('See the report ↓', '看报告 ↓')}</button></p>`
+        : `<button type="button" class="btn" id="adoptClaim">${ok ? t('Add it to my case report', '加入我的结案报告') : t('Adopt this corrected statement', '采用这个修正后的说法')}</button>`}</div>
+    <button type="button" class="link-btn" id="fcRetry">↺ ${t('Try this check again', '重新判断一次')}</button>`;
+}
+function refreshFinalCheck() {
+  if ($('finalCheck')) $('finalCheck').innerHTML = finalCheckInner();
+  if (!$('step6').hidden) renderReport();
+}
+
 // ---------- step 6: case report ----------
 // Everything the investigation found, on one page the visitor can print or download.
 function reportModel() {
@@ -549,7 +630,9 @@ function reportModel() {
   if (T.n < FEW_YEARS) open.push(t(`Only ${T.n} complete years — the result is less stable.`, `只有 ${T.n} 个完整年份，结果不够稳定。`));
   open.push(t('What caused the change? This tool shows what changed, not why.', '变化的原因是什么？本工具只回答变了什么，不回答为什么。'));
   const kind = q.mystery || conflict ? 'conflict' : r.verdict === 'unsure' ? 'unproven' : 'confirmed';
-  return { title: q.text, place: siteName(state.site), variable: v.name(), guessText, finding, evidence, checks, clues, open, kind, note: q.note };
+  const Q = quizFor(), qs = state.quiz[state.caseId];
+  const verified = Q && qs?.adopted ? { text: Q.verified, claim: Q.claim, first: Q.opts.find(([id]) => id === qs.choice)?.[1], ok: qs.choice === Q.answer } : null;
+  return { title: q.text, place: siteName(state.site), variable: v.name(), guessText, finding, evidence, checks, clues, open, kind, note: q.note, verified };
 }
 function reportHtml(m) {
   const li = xs => xs.map(x => `<li>${esc(x)}</li>`).join('');
@@ -562,6 +645,8 @@ function reportHtml(m) {
       <table>${m.evidence.map(([k, x]) => `<tr><th>${esc(k)}</th><td>${esc(x)}</td></tr>`).join('')}</table></section>
     ${m.checks.length ? `<section><h4>${t('3. Cross-checks', '3. 交叉核对')}</h4><ul>${li(m.checks)}</ul></section>` : ''}
     <section><h4>${m.checks.length ? t('4. Clues collected', '4. 收集到的线索') : t('3. Clues collected', '3. 收集到的线索')}</h4><ul>${li(m.clues)}</ul></section>
+    ${m.verified ? `<section class="rep-verified"><h4>${t('Verified conclusion', '核对后的结论')}</h4><p>${esc(m.verified.text)}</p>
+      <p class="rep-meta">${t('Claim judged:', '判断的说法：')} ${esc(m.verified.claim)} · ${t('Your first answer:', '你的第一判断：')} ${esc(m.verified.first)} (${m.verified.ok ? t('correct', '正确') : t('corrected', '已修正')}). ${t('The conclusion above was checked against the data by Trend Detective; it is not the visitor’s own wording.', '上面的结论由趋势侦探用数据核对，不是访问者自己的措辞。')}</p></section>` : ''}
     ${m.note ? `<section><h4>${t('Detective’s note', '侦探笔记')}</h4><p>${esc(m.note)}</p></section>` : ''}
     <section><h4>${t('Still open', '尚未解开的疑点')}</h4><ul>${li(m.open)}</ul></section>
     <footer class="rep-foot">${t('Method: yearly values, Mann-Kendall test with lag-1 autocorrelation correction, Sen slope with 95% interval, Benjamini-Hochberg across 8 cities. Data: NASA Giovanni / POWER, NOAA GHCN-Monthly, NASA GISTEMP.', '方法：年度值；Mann-Kendall 检验（含一阶自相关修正）、Sen 斜率及 95% 区间、8 城市 Benjamini-Hochberg 校正。数据：NASA Giovanni / POWER、NOAA GHCN-Monthly、NASA GISTEMP。')}</footer>
@@ -650,6 +735,10 @@ document.addEventListener('click', e => {
   if (e.target.closest('#resetWindow')) { state.win = null; updateStartYear(true); return; }
   const dot = e.target.closest('.rb-dot');
   if (dot) { state.win = Number(dot.dataset.start); updateStartYear(true); $('tamper')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const fc = e.target.closest('[data-fc]');
+  if (fc && !fc.disabled) { state.quiz[state.caseId] = { choice: fc.dataset.fc }; refreshFinalCheck(); return; }
+  if (e.target.closest('#adoptClaim')) { state.quiz[state.caseId].adopted = true; refreshFinalCheck(); return; }
+  if (e.target.closest('#fcRetry')) { delete state.quiz[state.caseId]; refreshFinalCheck(); return; }
   if (e.target.closest('#printReport')) { window.print(); return; }
   if (e.target.closest('#downloadReport')) { downloadReport(); return; }
   const el = e.target.closest('[data-lang],[data-case],[data-topic],[data-ptype],[data-pick],[data-site],[data-var],[data-guess]');

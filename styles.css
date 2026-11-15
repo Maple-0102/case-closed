@@ -488,3 +488,20 @@ body { background: var(--bg); color: var(--ink); }
 #tourBtn.entry:hover, #tourBtn.entry:focus-visible { background: var(--red); }
 #heroActions.flash { animation: flash 1.6s ease-out 2; border-radius: 8px; }
 @media (max-width: 600px) { .ticket-btn { width: 100%; justify-content: space-between; text-align: left; } }
+
+/* final check: judge a claim, then adopt the verified statement */
+.final-check { margin: 18px 0 10px; padding: 16px 18px; border: 2px solid var(--ink); border-radius: 12px; background: var(--panel); }
+.final-check h3 { margin: 0 0 6px; font-family: var(--type); }
+.claim { margin: 10px 0 14px; padding: 10px 14px; border-left: 4px solid var(--red); background: #fff7d1; color: #2b2620; font-family: var(--type); font-size: 1.05rem; }
+.fc-opts { display: flex; flex-direction: column; gap: 8px; }
+.fc-btn { text-align: left; padding: 10px 14px; border-radius: 10px; border: 2px dashed #b7a25a; background: #fff7d1; color: #2b2620; font: inherit; font-weight: 700; cursor: pointer; }
+.fc-btn:hover:not(:disabled) { border-style: solid; border-color: var(--red); }
+.fc-btn:disabled { cursor: default; }
+.fc-btn.right { border: 2px solid #1d6b36; background: #e3f4e8; color: #1d6b36; }
+.fc-btn.wrong { border: 2px solid #a33; background: #fde8e6; color: #8a1f1f; text-decoration: line-through; }
+.fc-btn.dim { opacity: .5; }
+.verified { margin: 12px 0 8px; padding: 12px 14px; border: 2px solid #1d6b36; border-radius: 10px; background: #f1faf3; color: #1f2a22; }
+.verified h4 { margin: 0 0 6px; color: #1d6b36; }
+.verified p { margin: 0 0 8px; }
+.adopted { font-weight: 800; color: #1d6b36; }
+.rep-verified { border-left: 4px solid #1d6b36; padding-left: 10px; }
