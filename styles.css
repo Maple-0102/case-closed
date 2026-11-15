@@ -510,3 +510,19 @@ body { background: var(--bg); color: var(--ink); }
 .hero-tag { margin: -2px 0 12px; font-family: var(--type); font-weight: 700; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--ink); }
 .hero-text .type-title { margin-left: auto; margin-right: auto; }
 .fc-jump { margin-top: 6px; }
+
+/* 12 cases: columns that divide 12 evenly (4 / 3 / 2 / 1), equal-height cards per row,
+   and "build your own" as a full-width strip underneath with its two questions side by side. */
+.cases { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
+@media (min-width: 900px) { .cases { align-items: stretch; } .cases .case { min-height: 0; } }
+@media (max-width: 1000px) { .cases { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .cases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .cases { grid-template-columns: 1fr; } }
+.cases .guide, .cases .guide:is(*) { grid-column: 1 / -1; margin-top: 6px; }
+@media (min-width: 900px) {
+  .cases .guide { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; align-items: start; }
+  .cases .guide > .tag, .cases .guide > p, .cases .guide > .recs { grid-column: 1 / -1; }
+  .cases .guide > .tag { justify-self: start; }
+}
+/* a little less padding in the case cards; rows stay equal height */
+.cases .case { padding: 13px 14px 12px; gap: 4px; }

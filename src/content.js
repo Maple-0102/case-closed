@@ -1,6 +1,6 @@
 // Cases, guiding questions, clues and glossary.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t } from './i18n.js';
+import { t } from './i18n.js?v=20261116l';
 
 export const SITE_NAMES = {
   singapore: ['Singapore', '新加坡'], delhi: ['New Delhi', '新德里'], cairo: ['Cairo', '开罗'],
@@ -70,8 +70,8 @@ export const CASES = [
     brief: () => t('London has a reputation for rain. Has its yearly rainfall changed since 1991?', '伦敦以多雨著称。从 1991 年起，它的全年降雨量变了吗？'),
     note: () => t('London’s rain has hardly moved (about +1 mm per decade, nowhere near proof), and none of our eight cities shows a rain trend we can trust, whether we ask the model or the satellite. Rain is simply very noisy from year to year.', '伦敦的降雨几乎没变（每十年约 +1 毫米，远远谈不上证据）；而且不管看模型还是卫星，8 个城市没有一个的降雨趋势站得住。降雨本来就年年起伏很大。') },
   { id: 'nuukgreen', site: 'nuuk', variable: 'NDVI', expect: 'up',
-    title: () => t('Is the land around Nuuk, Greenland, getting greener in summer?', '格陵兰努克周边的夏天在变绿吗？'),
-    sub: () => t('Ice is melting, so plants should spread… or should they? Summer satellite views only.', '冰在融化，植物应该在扩张……真的吗？只看卫星的夏季画面。'),
+    title: () => t('Are Nuuk’s summers getting greener?', '努克的夏天在变绿吗？'),
+    sub: () => t('Satellite views of the land around Nuuk, Greenland, in July–September.', '卫星看到的格陵兰努克周边陆地，只看 7–9 月。'),
     brief: () => t('Greenland’s ice is melting, so you might expect plants to spread. A NASA satellite has watched Nuuk’s summers since 2000.', '格陵兰的冰在融化，你可能会以为植物在扩张。NASA 卫星从 2000 年起一直在看努克的夏天。'),
     note: () => t('No proven greening here: summer greenness has barely moved (about −0.003 per decade). An expectation is a hypothesis, not evidence; test it against the data.', '这里没有被证实的变绿：夏季绿度几乎没动（每十年约 −0.003）。预期只是假设，不是证据；要拿数据来检验。') },
 ];

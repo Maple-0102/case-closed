@@ -26,7 +26,7 @@ export const STATIC = {
   s2: ['Choose a place and what to measure', '选地点，再选要测量什么'],
   s2a: ['Where?', '在哪里？'],
   s2hint: ['👆 Click a dot on the map or a place name.', '👆 点地图上的圆点或地名。'],
-  s1hint: ['👆 Click a case file to open it, or build your own case in the dashed card.', '👆 点一个案卷就能打开；或者在虚线卡片里自己组一个案子。'],
+  s1hint: ['👆 Click a case file to open it, or build your own case in the dashed box below.', '👆 点一个案卷就能打开；或者在下面的虚线框里自己组一个案子。'],
   s4hint: ['👆 Words marked ⓘ explain themselves: hover over them or tap them.', '👆 带 ⓘ 的词会自己解释：把鼠标放上去，或点一下。'],
   s5hint: ['👆 Click any lead to investigate it next.', '👆 点任意一条线索，接着往下查。'],
   s3: ['What to measure?', '测量什么？'],

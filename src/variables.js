@@ -1,6 +1,6 @@
 // Variables shown in the tool: plain-language names, definitions, units and how a year is summarised.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t } from './i18n.js';
+import { t } from './i18n.js?v=20261116l';
 
 // annual: 'mean' or 'total' (mean daily rate x days in year). scale converts units for display.
 // dp: decimals shown. kind: 'model' | 'satellite'. seasonal: may fall back to observable months.

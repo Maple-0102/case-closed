@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js';
-import { trendTest } from './stats.js';
-import { VARIABLES, CHECKS, VAR } from './variables.js';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js';
-import { chartSvg, replay, startYearSvg } from './chart.js';
-import { loadLand, mapSvg } from './map.js';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116l';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116l';
+import { trendTest } from './stats.js?v=20261116l';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116l';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116l';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116l';
+import { loadLand, mapSvg } from './map.js?v=20261116l';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116l';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -63,9 +63,9 @@ const viaName = via => (via.includes('Giovanni') ? 'NASA Giovanni' : via.include
 const srcLabel = v => (v.kind === 'satellite' ? term('satellite', t('Satellite', '卫星')) : term('model', t('Model', '模型'))) + ' ' + esc(v.product);
 function renderGuide() {
   const chip = (attr, id, on, label) => `<button type="button" class="chip${on ? ' on' : ''}" ${attr}="${id}">${label}</button>`;
-  const next = state.topic && !state.ptype ? t('Good. Now pick a kind of place in row 2.', '好。现在在第 2 行选一种地方。')
-    : !state.topic && state.ptype ? t('Good. Now pick what to investigate in row 1.', '好。现在在第 1 行选要调查什么。')
-    : t('Click one option in each row and we’ll suggest what to investigate.', '每一行点一个选项，我们就推荐可以调查的组合。');
+  const next = state.topic && !state.ptype ? t('Good. Now pick a kind of place in question 2.', '好。现在在第 2 题选一种地方。')
+    : !state.topic && state.ptype ? t('Good. Now pick what to investigate in question 1.', '好。现在在第 1 题选要调查什么。')
+    : t('Choose a topic and a place type to find your case.', '选一个主题和一种地方，找到你的案子。');
   let recs = `<p class="guide-next">👆 ${next}</p>`;
   if (state.topic && state.ptype) {
     const sites = PLACE_TYPES.find(p => p.id === state.ptype).sites;
@@ -78,7 +78,7 @@ function renderGuide() {
         <span><strong>${esc(name({ s, v }))}</strong><small>${srcLabel(v)}</small></span></button>`).join('')}</div>`
       : `<p class="guide-next">${t('No data for this combination yet. Try another kind of place.', '这个组合暂时没有数据，换一种地方试试。')}</p>`;
   }
-  $('guide').innerHTML = `<span class="tag">${t('Build your own', '自己组案子')}</span><p>🧩 ${t('Or build your own case: answer two questions', '或者自己组一个案子：回答两个问题')}</p>
+  $('guide').innerHTML = `<p>🧩 ${t('Build your own case', '自己组一个案子')}</p>
     <div class="guide-row"><span><b class="row-n">1</b>${t('What do you want to investigate?', '你想调查什么？')}</span><div class="chips">${TOPICS.map(x => chip('data-topic', x.id, state.topic === x.id, `${x.icon} ${x.name()}`)).join('')}</div></div>
     <div class="guide-row"><span><b class="row-n">2</b>${t('What kind of place?', '你想看哪种地方？')}</span><div class="chips">${PLACE_TYPES.map(x => chip('data-ptype', x.id, state.ptype === x.id, x.name())).join('')}</div></div>${recs}`;
 }
