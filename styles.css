@@ -541,7 +541,7 @@ body { background: var(--bg); color: var(--ink); }
 
 /* colour band under the track: start years that would get a different stamp (stamp colours) */
 /* a dashed, lighter underline so it reads as a marker, not a second track */
-.slider-band { position: absolute; bottom: 5px; height: 3px; left: calc(8px + var(--l) * (100% - 16px)); width: calc((var(--r) - var(--l)) * (100% - 16px)); pointer-events: none; opacity: .75;
+.slider-band { position: absolute; bottom: 8px; height: 3px; left: calc(8px + var(--l) * (100% - 16px)); width: calc((var(--r) - var(--l)) * (100% - 16px)); pointer-events: none; opacity: .75;
   background: repeating-linear-gradient(90deg, var(--band) 0 6px, transparent 6px 10px); }
 .band-confirmed { --band: #2f6b3a; } .band-unproven { --band: #8a6d1e; }
 @media (prefers-color-scheme: dark) { .band-confirmed { --band: #8fd19e; } .band-unproven { --band: #e8c76a; } }

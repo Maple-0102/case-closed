@@ -1,6 +1,6 @@
 // From monthly series (data/processed/series.json) to yearly values and trend results.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { trendTest, benjaminiHochberg, MIN_YEARS } from './stats.js?v=20261116v';
+import { trendTest, benjaminiHochberg, MIN_YEARS } from './stats.js?v=20261116w';
 
 const daysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m is 1-12
 const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;

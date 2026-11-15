@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116v';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116v';
-import { trendTest } from './stats.js?v=20261116v';
-import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116v';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116v';
-import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116v';
-import { loadLand, mapSvg } from './map.js?v=20261116v';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116v';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116w';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116w';
+import { trendTest } from './stats.js?v=20261116w';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116w';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116w';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116w';
+import { loadLand, mapSvg } from './map.js?v=20261116w';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116w';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -313,10 +313,9 @@ function sliderTask(c) {
   const flip = q.mystery ? null : c.windows.find(w => w.start !== c.full.start && stampKind(w, r) !== full);
   if (flip) {
     const prev = c.windows[c.windows.indexOf(flip) - 1].start;
-    const col = stampKind(flip, r) === 'confirmed' ? { en: 'green', zh: '绿色' } : { en: 'brown', zh: '褐色' };
     return { year: flip.start, text: prev === c.full.start
-      ? t(`Drag the red dot one year right, over the ${col.en} dashes under the track. Does the stamp change?`, `把红点往右挪一年，拖到滑轨下方${col.zh}虚线那一段，看看印章会不会变。`)
-      : t(`Drag the red dot from ${prev} over the ${col.en} dashes under the track. Does the stamp change?`, `把红点从 ${prev} 年拖到滑轨下方${col.zh}虚线那一段，看看印章会不会变。`) };
+      ? t(`Drag the red dot one step right, to ${flip.start}. Watch the stamp.`, `把红点往右挪一年到 ${flip.start}，看看印章怎么变。`)
+      : t(`Drag the red dot to ${prev}, then one step to ${flip.start}. Watch the stamp.`, `把红点拖到 ${prev}，再往右挪一年到 ${flip.start}，看看印章怎么变。`) };
   }
   const far = c.farthest;
   if (far && far.start !== c.full.start) return { year: far.start, text: q.mystery
