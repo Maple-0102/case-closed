@@ -513,16 +513,19 @@ function renderClues() {
 const dec10 = (x, dp) => sign(x * 10, dp);
 const QUIZ = {
   cairohaze: () => {
-    const c = checkFor('cairo', 'AOD'), first = c.windows.find(w => w.significant)?.start;
+    const c = checkFor('cairo', 'AOD'), sig = c.windows.filter(w => w.significant).map(w => w.start);
+    // "From X or later" only if every later window is supported too; otherwise list them.
+    const first = sig[0], toEnd = sig.length && c.windows.every(w => w.start < first || w.significant);
+    const when = toEnd ? t(`${first} or later`, `${first} 年或更晚`) : sig.join(t(', ', '、'));
     return {
       claim: t('“NASA satellite data prove the haze over Cairo has been thinning since 2001.”', '"NASA 卫星数据证明，开罗上空的雾霾从 2001 年起一直在变薄。"'),
       answer: 'b',
       opts: [
-        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that holds only for some later start years (${first} or later) and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是只在部分较晚起点（${first} 年或更晚）成立的结果，却说成全部年份都这样。`)],
+        ['a', t('Yes: the satellite shows it', '签：卫星确实这么显示'), t(`Over all the years since ${c.full.start}, the same test says not proven. The claim takes a result that holds only for some later start years (${when}) and quotes it as if it covered every year.`, `从 ${c.full.start} 年起的全部年份，同一个检验的结论是证据不足。这句话拿的是只在部分较晚起点（${when}）成立的结果，却说成全部年份都这样。`)],
         ['b', t('No: some later start years support a decline, but all the years do not', '不签：部分较晚的起点支持下降，但全部年份不支持'), t('Right. The problem is the years, not the satellite. Note what this does not mean: it does not pin down a year when the change began, and a falling trend does not mean every single year was lower than the one before.', '对。问题出在年份，不在卫星。也要注意它不代表什么：它并没有找到变化从哪一年开始，而且趋势下降也不等于每一年都比前一年低。')],
         ['c', t('No: the haze is actually getting thicker', '不签：雾霾其实在变厚'), t('The trend points down from every start year, not up. What is wrong with the claim is the years it covers, not the direction.', '从每个起点算，趋势都是往下，不是往上。这句话错在它覆盖的年份，不在方向。')],
       ],
-      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Windows that start in ${first} or later support a decline. A fair claim names its years.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。从 ${first} 年或更晚起算的窗口支持下降。公平的说法要写明年份。`),
+      verified: t(`Over ${c.full.start}–${c.full.end}, the NASA MODIS satellite record does not prove a trend in the haze over Cairo. Windows that start in ${when} support a decline. A fair claim names its years.`, `在 ${c.full.start}–${c.full.end} 年，NASA MODIS 卫星记录证明不了开罗上空的雾霾有趋势。从 ${when}起算的窗口支持下降。公平的说法要写明年份。`),
     };
   },
   delhi: () => {
@@ -554,8 +557,149 @@ const QUIZ = {
       verified: t(`Moscow’s warming from ${T.firstYear} to ${T.lastYear} is supported: about ${d(T.slope)} °C per decade (95% range ${range}). That estimate is about ${ratio} times the global estimate for the same years (${d(g.slope)} °C per decade, NASA GISTEMP), but no separate uncertainty analysis was done for that ratio, so “twice as fast” is an estimate, not a proven result.`, `莫斯科 ${T.firstYear}–${T.lastYear} 年的变暖有证据支持：每十年约 ${d(T.slope)} °C（95% 范围 ${range}）。这个估计值大约是同期全球估计值（每十年 ${d(g.slope)} °C，NASA GISTEMP）的 ${ratio} 倍，但没有对这个倍数做专门的不确定性分析，所以"两倍"只是估计，不是被证明的结果。`),
     };
   },
+  // Trend is not every year.
+  sg: () => {
+    const r = result('singapore', 'T2M'), T = r.test, st = state.results.T2M_STATION?.singapore?.test;
+    const rows = r.rows.filter(x => x.complete);
+    let steps = 0, downs = 0;
+    rows.forEach((x, i) => { if (i && x.year === rows[i - 1].year + 1) { steps += 1; if (x.value < rows[i - 1].value) downs += 1; } });
+    const agree = st && Math.sign(st.slope) === Math.sign(T.slope);
+    return {
+      claim: t('“Singapore has got hotter every single year since 1991.”', '"新加坡从 1991 年起每一年都比前一年热。"'),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: the warming trend is supported', '签：变暖趋势有证据支持'), t(`The trend is supported, but a trend is not “every year”. In ${downs} of the ${steps} steps from one year to the next, Singapore got cooler, not warmer.`, `趋势确实有证据支持，但趋势不等于"每一年"。在 ${steps} 次相邻年份的比较里，有 ${downs} 次是后一年比前一年凉，不是更热。`)],
+        ['b', t('No: the warming is supported, but not every year was warmer', '不签：变暖有证据支持，但不是每一年都更热'), t('Right. A trend describes the long-run direction; single years still go up and down around it.', '对。趋势说的是长期方向，单个年份仍然会围绕它上下起伏。')],
+        ['c', t('No: Singapore has not warmed at all', '不签：新加坡根本没变暖'), t(`It has: the warming is supported (${dec10(T.slope, 2)} °C per decade)${agree ? ', and the city’s own weather station agrees on the direction' : ''}. The problem with the claim is “every single year”.`, `变暖了：趋势有证据支持（每十年 ${dec10(T.slope, 2)} °C）${agree ? '，城里的气象站方向也一致' : ''}。这句话的问题在"每一年"。`)],
+      ],
+      verified: t(`From ${T.firstYear} to ${T.lastYear}, Singapore’s warming trend is supported: about ${dec10(T.slope, 2)} °C per decade${agree ? ', and the city’s weather station agrees on the direction' : ''}. But in ${downs} of the ${steps} steps from one year to the next it got cooler. A trend is the long-run direction, not a rise every year.`, `${T.firstYear}–${T.lastYear} 年，新加坡的变暖趋势有证据支持：每十年约 ${dec10(T.slope, 2)} °C${agree ? '，城里的气象站方向也一致' : ''}。但在 ${steps} 次相邻年份的比较里，有 ${downs} 次后一年更凉。趋势是长期方向，不是每年都升。`),
+    };
+  },
+  // "Not proven" is not "no change".
+  nuukwarm: () => {
+    const T = result('nuuk', 'T2M').test, d = x => dec10(x, 2);
+    return {
+      claim: t('“NASA data show that Nuuk’s air has not warmed since 1991.”', '"NASA 数据显示，努克的空气从 1991 年起没有变暖。"'),
+      answer: 'c',
+      opts: [
+        ['a', t('Yes: the test found no significant trend', '签：检验没找到显著趋势'), t(`“Not significant” does not mean “no change”. The estimate leans towards warming (${d(T.slope)} °C per decade), and its 95% range (${d(T.ciLow)} to ${d(T.ciHigh)}) includes both no change and fast warming.`, `"不显著"不等于"没变化"。估计值偏向变暖（每十年 ${d(T.slope)} °C），95% 范围（${d(T.ciLow)} 到 ${d(T.ciHigh)}）既包括没变化，也包括快速变暖。`)],
+        ['b', t('No: Greenland is famous for melting, so Nuuk has clearly warmed', '不签：格陵兰以融冰出名，努克显然变暖了'), t('Being famous is not being proven. For this place and these years the data lean warm but cannot prove it, so “clearly” goes too far the other way.', '出名不等于被证实。对这个地方、这些年份，数据偏向变暖但证明不了，所以"显然"同样说过头了。')],
+        ['c', t('No: “not proven” is not the same as “no change”', '不签："证据不足"不等于"没有变化"'), t('Right. The honest answer is “not proven either way yet”, not “nothing happened”.', '对。诚实的回答是"两个方向都还证明不了"，而不是"什么都没发生"。')],
+      ],
+      verified: t(`From ${T.firstYear} to ${T.lastYear}, Nuuk’s air temperature leans towards warming (about ${d(T.slope)} °C per decade), but the 95% range (${d(T.ciLow)} to ${d(T.ciHigh)}) still includes no change, so this record cannot prove a trend. It does not show that Nuuk has not warmed.`, `${T.firstYear}–${T.lastYear} 年，努克的气温偏向变暖（每十年约 ${d(T.slope)} °C），但 95% 范围（${d(T.ciLow)} 到 ${d(T.ciHigh)}）仍包括"没变化"，所以这段记录证明不了趋势。它也没有说明努克没有变暖。`),
+    };
+  },
+  // A trend test says what changed, not why.
+  manaus: () => {
+    const r = result('manaus', 'T2M'), T = r.test, ok = r.verdict !== 'unsure';
+    return {
+      claim: t('“NASA data prove that deforestation is heating the air around Manaus.”', '"NASA 数据证明，砍伐森林正在让马瑙斯周围的空气变热。"'),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: the temperature trend points up', '签：气温趋势是往上的'), t(`It points up (${dec10(T.slope, 2)} °C per decade), but ${ok ? 'even a supported trend' : 'the trend is not proven, and even a proven one'} would not say why. Nothing in a trend test points to deforestation or any other cause.`, `确实往上（每十年 ${dec10(T.slope, 2)} °C），但${ok ? '即使趋势有证据支持' : '趋势本身证据不足，而且就算被证实了'}，也说明不了原因。趋势检验里没有任何东西指向砍伐森林或别的原因。`)],
+        ['b', t(`No: ${ok ? 'the warming is supported' : 'the warming is not proven'}, and the data cannot say what causes it`, `不签：变暖${ok ? '有证据支持' : '证据不足'}，而且数据说明不了原因`), t('Right. Two separate problems: how sure the trend is, and the jump from “what changed” to “why”.', '对。这里有两个问题：趋势有多确定，以及从"变了什么"跳到"为什么变"。')],
+        ['c', t('No: the data prove that Manaus is not warming', '不签：数据证明马瑙斯没有变暖'), t(`They do not. The estimate leans warm (${dec10(T.slope, 2)} °C per decade); “not proven” is not “not warming”.`, `并没有。估计值偏向变暖（每十年 ${dec10(T.slope, 2)} °C）；"证据不足"不等于"没变暖"。`)],
+      ],
+      verified: t(`From ${T.firstYear} to ${T.lastYear}, NASA’s MERRA-2 model shows the air around Manaus leaning towards warming (about ${dec10(T.slope, 2)} °C per decade), ${ok ? 'and the trend is supported' : 'but the trend is not proven'}. A trend test shows what changed, not why: these data alone cannot blame deforestation, or anything else.`, `${T.firstYear}–${T.lastYear} 年，NASA MERRA-2 模型显示马瑙斯周围的气温偏向变暖（每十年约 ${dec10(T.slope, 2)} °C），${ok ? '趋势有证据支持' : '但趋势证据不足'}。趋势检验只说明变了什么，不说明为什么：单凭这些数据，不能归咎于砍伐森林，也不能归咎于其他任何原因。`),
+    };
+  },
+  // Right direction, wrong size.
+  delhisun: () => {
+    const r = result('delhi', 'SUN'), T = r.test;
+    const vals = r.rows.filter(x => x.complete).map(x => x.value), mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const drop = -T.slope * (T.lastYear - T.firstYear), pct = Math.round(drop / mean * 100);
+    return {
+      claim: t('“New Delhi has lost a third of its sunlight since 1991.”', '"新德里从 1991 年起少了三分之一的阳光。"'),
+      answer: 'c',
+      opts: [
+        ['a', t('Yes: its decline is the strongest of our eight cities', '签：它的下降是 8 个城市里最强的'), t(`The direction is right and the decline is supported, but the size is not. The trend line falls by about ${drop.toFixed(0)} W/m² over the record, roughly ${pct}% of the average ${mean.toFixed(0)} W/m², not a third.`, `方向对，下降也有证据支持，但幅度不对。整段记录里趋势线下降约 ${drop.toFixed(0)} W/m²，大约是平均值 ${mean.toFixed(0)} W/m² 的 ${pct}%，不是三分之一。`)],
+        ['b', t('No: New Delhi’s sunlight has not changed', '不签：新德里的阳光没变'), t(`It has: less sunlight reaches the ground, and the decline is supported (${dec10(T.slope, 1)} W/m² per decade). What is wrong is the size.`, `变了：照到地面的阳光在减少，而且有证据支持（每十年 ${dec10(T.slope, 1)} W/m²）。错的是幅度。`)],
+        ['c', t('No: the decline is supported, but it is far smaller than a third', '不签：下降有证据支持，但远没有三分之一'), t('Right. A claim can get the direction right and still blow up the size. Always check “by how much”.', '对。一句话可以方向对，幅度却被夸大。一定要核对"变了多少"。')],
+      ],
+      verified: t(`From ${T.firstYear} to ${T.lastYear}, sunlight reaching the ground around New Delhi fell by about ${Math.abs(T.slope * 10).toFixed(1)} W/m² per decade, and the decline is supported. Over the record the trend line falls by about ${drop.toFixed(0)} W/m², roughly ${pct}% of the average ${mean.toFixed(0)} W/m², not a third.`, `${T.firstYear}–${T.lastYear} 年，新德里周边照到地面的阳光每十年约减少 ${Math.abs(T.slope * 10).toFixed(1)} W/m²，下降有证据支持。整段记录里趋势线下降约 ${drop.toFixed(0)} W/m²，大约是平均值 ${mean.toFixed(0)} W/m² 的 ${pct}%，不是三分之一。`),
+    };
+  },
+  // One city does not speak for everywhere.
+  london: () => {
+    const all = state.results.SUN, T = all.london.test;
+    const down = Object.entries(all).filter(([, r]) => r.verdict === 'down').map(([s]) => shortSite(s));
+    const unsure = Object.values(all).filter(r => r.test && r.verdict === 'unsure').length;
+    return {
+      claim: t('“Skies are clearing everywhere: NASA data show London getting more sunlight.”', '"各地的天空都在变晴：NASA 数据显示伦敦的阳光在变多。"'),
+      answer: 'a',
+      opts: [
+        ['a', t('No: London’s rise is supported, but one city does not speak for everywhere', '不签：伦敦的上升有证据支持，但一座城市代表不了各地'), t(`Right. The same NASA variable falls in ${down.join(', ')}, and in ${unsure} of our cities no trend is proven at all.`, `对。同一个 NASA 变量在${down.join('、')}是下降的，还有 ${unsure} 个城市根本没有被证实的趋势。`)],
+        ['b', t('Yes: London’s rise is supported', '签：伦敦的上升有证据支持'), t(`London’s part is right, “everywhere” is not: sunlight is falling in ${down.join(', ')} (supported), and in ${unsure} of our cities no trend is proven.`, `伦敦那部分没错，"各地"不对：${down.join('、')}的阳光在减少（有证据支持），另有 ${unsure} 个城市没有被证实的趋势。`)],
+        ['c', t('No: London is actually getting darker', '不签：伦敦其实在变暗'), t(`The data say the opposite: about ${dec10(T.slope, 1)} W/m² per decade more sunlight in London, and the rise is supported. The problem is “everywhere”.`, `数据说的正相反：伦敦每十年约多 ${dec10(T.slope, 1)} W/m² 的阳光，而且有证据支持。问题出在"各地"。`)],
+      ],
+      verified: t(`From ${T.firstYear} to ${T.lastYear}, sunlight reaching the ground in London rose by about ${dec10(T.slope, 1)} W/m² per decade, and the rise is supported. In ${down.join(', ')} it fell (supported), and in ${unsure} of our eight cities no trend is proven. One city cannot speak for everywhere.`, `${T.firstYear}–${T.lastYear} 年，伦敦照到地面的阳光每十年约增加 ${dec10(T.slope, 1)} W/m²，上升有证据支持。${down.join('、')}则在下降（有证据支持），我们 8 个城市里还有 ${unsure} 个没有被证实的趋势。一座城市代表不了各地。`),
+    };
+  },
+  // Quoting only the source that agrees.
+  moscowhaze: () => {
+    const a = result('moscow', 'AOD'), b = state.results.AOD_AQUA.moscow;
+    const s = r => `${r.test.firstYear}–${r.test.lastYear}${t(', ', '，')}${seasonLabel(r.season)}`;
+    const word = r => (r.verdict === 'unsure' ? t('does not reach this tool’s threshold for support', '没有达到本工具的统计支持阈值') : t('is supported', '有证据支持'));
+    return {
+      claim: t('“Two NASA satellites both confirm that the haze over Moscow is thinning.”', '"两颗 NASA 卫星都证实，莫斯科上空的雾霾在变薄。"'),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: both satellites point down', '签：两颗卫星都往下'), t(`Both estimates do point down, but pointing the same way is not confirming. Aqua’s decline is supported; Terra’s ${word(a)}. And both cover only the months the satellites can see.`, `两个估计值确实都往下，但方向一致不等于都证实了。Aqua 的下降有证据支持；Terra 的${word(a)}。而且两者都只覆盖卫星看得清的月份。`)],
+        ['b', t('Partly: both point down, but only Aqua reaches the threshold for support', '只签一半：两颗都往下，但只有 Aqua 达到了统计支持阈值'), t('Right. Quoting Aqua’s result is fine if you name the satellite, the months and the years; saying both satellites confirm it is not.', '对。引用 Aqua 的结果没问题，只要写明卫星、月份和年份；但说两颗卫星都证实了，就不对。')],
+        ['c', t('No: the haze over Moscow is not changing', '不签：莫斯科的雾霾没有变化'), t('Both estimates point down and Aqua’s decline is supported, so “not changing” goes too far the other way.', '两个估计值都往下，而且 Aqua 的下降有证据支持，所以"没有变化"同样说过头了。')],
+      ],
+      verified: t(`In the months the satellites can see, both MODIS estimates for the haze over Moscow point down, but only one reaches this tool’s threshold for support: Aqua’s decline ${word(b)} (${s(b)}); Terra’s ${word(a)} (${s(a)}). Name the satellite, the months and the years; do not say both satellites confirm a decline.`, `在卫星看得清的月份里，两份 MODIS 对莫斯科上空雾霾的估计都往下，但只有一份达到本工具的统计支持阈值：Aqua 的下降${word(b)}（${s(b)}）；Terra 的${word(a)}（${s(a)}）。要写明卫星、月份和年份；不能说两颗卫星都证实了下降。`),
+    };
+  },
+  // An expectation is not evidence.
+  cairo: () => {
+    const m = result('cairo', 'PRECIP').test, g = state.results.IMERG.cairo.test;
+    const lean = m.slope > 0 && g.slope > 0;
+    return {
+      claim: t('“Cairo is drying out: NASA rain data prove it.”', '"开罗在变干：NASA 降水数据证明了这一点。"'),
+      answer: 'a',
+      opts: [
+        ['a', t(`No: neither source shows a supported rain trend${lean ? ', and both estimates even lean slightly upwards' : ''}`, `不签：两套数据的降水趋势都没有证据支持${lean ? '，而且估计值都略微向上' : ''}`), t('Right. A desert city drying out sounds likely, but an expectation is not evidence. And yearly rain alone cannot say whether the whole region is getting drier: evaporation and soil moisture matter too.', '对。沙漠城市变干听起来很合理，但预期不是证据。而且单凭年降水，也判断不了整个地区是否变得更干燥：蒸发和土壤水分也有关系。')],
+        ['b', t('Yes: desert cities are drying', '签：沙漠城市都在变干'), t(`That is an expectation, not what these data say. Neither NASA’s model nor the GPM satellite shows a supported trend in Cairo’s yearly rain${lean ? ', and both estimates lean slightly upwards' : ''}.`, `这是预期，不是这些数据说的。NASA 模型和 GPM 卫星的开罗年降水趋势都没有证据支持${lean ? '，而且估计值都略微向上' : ''}。`)],
+        ['c', t('No: the data prove that Cairo’s rain is increasing', '不签：数据证明开罗的降水在增加'), t('Leaning is not proof: neither upward estimate reaches this tool’s threshold for support. With so little rain, one wet year moves the yearly total a lot.', '偏向不等于证明：两个向上的估计值都没有达到本工具的统计支持阈值。雨这么少，只要有一年多下点雨，全年总量就会变很多。')],
+      ],
+      verified: t(`Neither NASA’s MERRA-2 model (${m.firstYear}–${m.lastYear}) nor the GPM IMERG satellite (${g.firstYear}–${g.lastYear}) shows a supported trend in Cairo’s yearly rain${lean ? '; both estimates lean slightly upwards' : ''}. With only a few tens of millimetres a year, one wet year moves the total a lot, and yearly rain alone cannot say whether the region is getting drier overall.`, `NASA MERRA-2 模型（${m.firstYear}–${m.lastYear}）和 GPM IMERG 卫星（${g.firstYear}–${g.lastYear}）的开罗年降水趋势都没有证据支持${lean ? '；两者的估计值都略微向上' : ''}。一年只有几十毫米雨，一个多雨的年份就能让总量变很多；而且单凭年降水，也判断不了整个地区是否变得更干燥。`),
+    };
+  },
+  // A couple of years is weather, not a trend.
+  londonrain: () => {
+    const r = result('london', 'PRECIP'), T = r.test, rows = r.rows.filter(x => x.complete);
+    const mean = rows.reduce((a, x) => a + x.value, 0) / rows.length;
+    const hi = rows.reduce((a, x) => (x.value > a.value ? x : a)), lo = rows.reduce((a, x) => (x.value < a.value ? x : a));
+    const g = state.results.IMERG.london;
+    return {
+      claim: t('“2023 and 2024 were both wetter than usual, so London is getting wetter.”', '"2023 和 2024 年都比平常多雨，所以伦敦在变湿。"'),
+      answer: 'c',
+      opts: [
+        ['a', t('Yes: two wet years in a row', '签：连续两年多雨'), t(`Two years are weather, not a trend. London’s yearly rain swings from ${lo.value.toFixed(0)} mm (${lo.year}) to ${hi.value.toFixed(0)} mm (${hi.year}), and over ${T.firstYear}–${T.lastYear} the trend is about ${dec10(T.slope, 0)} mm per decade, nowhere near proof.`, `两年是天气，不是趋势。伦敦的年降水从 ${lo.value.toFixed(0)} 毫米（${lo.year}）到 ${hi.value.toFixed(0)} 毫米（${hi.year}）都有，${T.firstYear}–${T.lastYear} 年的趋势约为每十年 ${dec10(T.slope, 0)} 毫米，远远谈不上证据。`)],
+        ['b', t('No: London’s rain has stayed exactly the same', '不签：伦敦的降水一点都没变'), t('“Not proven” does not mean “exactly the same”: the years swing a lot, so the record cannot show a trend either way.', '"证据不足"不等于"一点没变"：年份起伏很大，所以这段记录哪个方向的趋势都显示不了。')],
+        ['c', t('No: a couple of wet years is not a trend', '不签：几个多雨的年份不算趋势'), t('Right. Two wet years are not enough to judge a long-term trend. A recent trend can be studied too, but it has to name its years and weigh the year-to-year swings and the uncertainty.', '对。仅凭两个多雨年份，不足以判断长期趋势。近期趋势也可以研究，但必须写明时间范围，并评估年际波动和不确定性。')],
+      ],
+      verified: t(`London’s yearly rain swings a lot (in NASA’s MERRA-2 model, from ${lo.value.toFixed(0)} mm in ${lo.year} to ${hi.value.toFixed(0)} mm in ${hi.year}; about ${mean.toFixed(0)} mm on average). Over ${T.firstYear}–${T.lastYear} the trend is about ${dec10(T.slope, 0)} mm per decade and not proven${g?.test && g.verdict === 'unsure' ? `, and the GPM satellite (${g.test.firstYear}–${g.test.lastYear}) does not prove one either` : ''}. A couple of wet years is weather, not a trend.`, `伦敦的年降水起伏很大（NASA MERRA-2 模型里，从 ${lo.year} 年的 ${lo.value.toFixed(0)} 毫米到 ${hi.year} 年的 ${hi.value.toFixed(0)} 毫米；平均约 ${mean.toFixed(0)} 毫米）。${T.firstYear}–${T.lastYear} 年的趋势约为每十年 ${dec10(T.slope, 0)} 毫米，证据不足${g?.test && g.verdict === 'unsure' ? `；GPM 卫星（${g.test.firstYear}–${g.test.lastYear}）也证明不了趋势` : ''}。几个多雨的年份是天气，不是趋势。`),
+    };
+  },
+  // One small area, one season.
+  nuukgreen: () => {
+    const r = result('nuuk', 'NDVI'), T = r.test;
+    return {
+      claim: t('“Satellites show Greenland turning green.”', '"卫星显示格陵兰正在变绿。"'),
+      answer: 'b',
+      opts: [
+        ['a', t('Yes: the ice is melting, so plants must be spreading', '签：冰在融化，植物肯定在扩张'), t('That is an expectation, not evidence. Here the satellite shows no proven change in summer greenness.', '这是预期，不是证据。这里卫星没有显示夏季绿度有被证实的变化。')],
+        ['b', t('No: the land around Nuuk shows no proven greening, and one area is not all of Greenland', '不签：努克周边没有被证实的变绿，而且一个地方代表不了整个格陵兰'), t('Right. Two problems: what this place shows, and how far one place can be stretched.', '对。两个问题：这个地方显示了什么，以及一个地方的结果能推广多远。')],
+        ['c', t('No: the data prove that Nuuk is getting less green', '不签：数据证明努克在变黄'), t(`The estimate leans very slightly down (${dec10(T.slope, 3)} NDVI per decade), but that is nowhere near proof.`, `估计值略微偏向下降（每十年 ${dec10(T.slope, 3)} NDVI），但远远谈不上证明。`)],
+      ],
+      verified: t(`In ${seasonLabel(r.season)}, plant greenness of the land around Nuuk shows no proven trend from ${T.firstYear} to ${T.lastYear} (about ${dec10(T.slope, 3)} NDVI per decade). This is one area on Greenland’s coast, so it cannot speak for Greenland as a whole.`, `在 ${seasonLabel(r.season)}，努克周边陆地的植被绿度 ${T.firstYear}–${T.lastYear} 年没有被证实的趋势（每十年约 ${dec10(T.slope, 3)} NDVI）。这只是格陵兰海岸的一个区域，代表不了整个格陵兰。`),
+    };
+  },
 };
 const quizFor = () => (QUIZ[state.caseId] && CASES.some(c => c.id === state.caseId && c.site === state.site && c.variable === state.variable) ? QUIZ[state.caseId]() : null);
+const FC_POS = { cairohaze: 1, delhi: 0, moscowfast: 2, sg: 0, nuukwarm: 2, manaus: 1, delhisun: 2, london: 0, moscowhaze: 1, cairo: 2, londonrain: 0, nuukgreen: 1 };
 function finalCheck() {
   const Q = quizFor();
   if (!Q) return '';
@@ -566,7 +710,10 @@ function finalCheckInner(Q = quizFor()) {
   const head = `<h3>🕵️ ${t('Final check: would you sign this?', '最后一关：这句话你敢签字吗？')}</h3>
     <p class="hint">${t('Someone posts this online, citing this case. Judge it like a detective.', '有人在网上发了这句话，引用的正是这个案子。像侦探一样判断它。')}</p>
     <blockquote class="claim">${esc(Q.claim)}</blockquote>`;
-  const opts = `<div class="fc-opts">${Q.opts.map(([id, label]) => {
+  // Rotate the options so the right answer sits first, second or third equally often across cases.
+  const n = Q.opts.length, ai = Q.opts.findIndex(([id]) => id === Q.answer);
+  const k = ((ai - (FC_POS[state.caseId] ?? ai)) % n + n) % n;
+  const opts = `<div class="fc-opts">${[...Q.opts.slice(k), ...Q.opts.slice(0, k)].map(([id, label]) => {
     const cls = !s.choice ? '' : id === Q.answer ? ' right' : id === s.choice ? ' wrong' : ' dim';
     return `<button type="button" class="fc-btn${cls}" data-fc="${id}" ${s.choice ? 'disabled' : ''}>${esc(label)}</button>`;
   }).join('')}</div>`;

@@ -12,7 +12,7 @@ export const STATIC = {
   heroTag: ['Investigate Earth’s changes. Decide what the evidence supports.', '调查地球的变化，判断证据到底支持什么。'],
   cwTitle: ['Case wall: eight cities, each with 35 years of temperature stripes, pinned to one case file', '案件墙：8 个城市，每个城市 35 年的温度条纹，钉在同一份案卷上'],
   openCase: ['Open a case file', '打开一个案卷'],
-  openCaseSub: ['12 ready-made cases', '12 个现成的案子'],
+  openCaseSub: ['12 cases, each ending in a final check', '12 个案子，每个最后都有一关'],
   buildBtn: ['Build your own case', '自己组一个案子'],
   buildBtnSub: ['Answer two quick questions', '回答两个小问题'],
   mapBtn: ['Pick a city on the map', '在地图上选城市'],

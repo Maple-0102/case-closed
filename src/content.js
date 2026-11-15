@@ -58,7 +58,7 @@ export const CASES = [
     title: () => t('Two satellites: is the haze over Moscow thinning?', '两颗卫星：莫斯科上空的雾霾在变薄吗？'),
     sub: () => t('Same sensor, same city, two satellites. Do they agree?', '同样的仪器，同一座城市，两颗卫星。它们一致吗？'),
     brief: () => t('NASA flies the same haze sensor on two satellites: Terra crosses in the morning, Aqua in the afternoon. Is Moscow’s haze falling? After the answer, compare the two in Clue 3.', 'NASA 把同一种测雾霾的仪器装在两颗卫星上：Terra 上午经过，Aqua 下午经过。莫斯科的雾霾在减少吗？看完答案，到线索 3 比一比两颗卫星。'),
-    note: () => t('Terra alone falls just short of proof; Aqua shows a supported decline (in the months the satellites can see). Same instrument, same city, different confidence: that is why detectives cross-check.', '单看 Terra 差一点点才能证明；Aqua 则显示有证据支持的下降（在卫星看得清的月份里）。同样的仪器、同一座城市，把握程度却不同：这就是侦探要交叉核对的原因。') },
+    note: () => t('Both satellites’ estimates point down, but only Aqua’s decline reaches this tool’s threshold for support; Terra’s does not (in the months the satellites can see). Same instrument, same city, different confidence: that is why detectives cross-check.', '两颗卫星的估计值都往下，但只有 Aqua 的下降达到了本工具的统计支持阈值，Terra 的没有（在卫星看得清的月份里）。同样的仪器、同一座城市，把握程度却不同：这就是侦探要交叉核对的原因。') },
   { id: 'cairo', site: 'cairo', variable: 'PRECIP', expect: 'down',
     title: () => t('Is desert Cairo getting less rain?', '沙漠里的开罗，雨变少了吗？'),
     sub: () => t('Only a few tens of millimetres a year. Can it get any less?', '一年只下几十毫米雨。还能更少吗？'),
