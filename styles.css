@@ -524,3 +524,10 @@ body { background: var(--bg); color: var(--ink); }
   .cases .guide > .tag, .cases .guide > p, .cases .guide > .recs { grid-column: 1 / -1; }
   .cases .guide > .tag { justify-self: start; }
 }
+
+/* next steps under the verdict: side by side on desktop, stacked on phones */
+.next-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 18px; }
+.next-row .fc-jump { margin: 0; border: 2px solid var(--ink); }
+@media (max-width: 600px) { .next-row { flex-direction: column; } .next-row .fc-jump { width: 100%; } }
+.tamper-task { margin: 4px 0 2px; font-family: var(--type); font-weight: 700; color: var(--red); }
+.tamper .tamper-task + .hint { margin-top: 0; }

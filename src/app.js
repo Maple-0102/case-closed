@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116l';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116l';
-import { trendTest } from './stats.js?v=20261116l';
-import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116l';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116l';
-import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116l';
-import { loadLand, mapSvg } from './map.js?v=20261116l';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116l';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116r';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116r';
+import { trendTest } from './stats.js?v=20261116r';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116r';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116r';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116r';
+import { loadLand, mapSvg } from './map.js?v=20261116r';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116r';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -304,6 +304,19 @@ function farthestText(c, v) {
 }
 const stampKind = (w, r) => (w.start === checkFor().full.start ? (r.verdict === 'unsure' ? 'unproven' : 'confirmed') : w.significant ? 'confirmed' : 'unproven');
 
+// A concrete task for the slider, picked from this record's own start-year results:
+// the first start year whose stamp differs from the full record's, else the most misleading one.
+function sliderTask(c) {
+  const r = result(), q = question(VAR(state.variable));
+  const full = stampKind(c.full, r);
+  const flip = q.mystery ? null : c.windows.find(w => w.start !== c.full.start && stampKind(w, r) !== full);
+  if (flip) return t(`Try it: drag the start year to ${flip.start}. Does the stamp change?`, `试一试：把红点拖到 ${flip.start} 年，看看印章会不会变。`);
+  const far = c.farthest;
+  if (far && far.start !== c.full.start) return q.mystery
+    ? t(`Try it: drag the start year to ${far.start}. How far does the model’s trend line move?`, `试一试：把红点拖到 ${far.start} 年，看看模型的趋势线会变多少。`)
+    : t(`Try it: drag the start year to ${far.start}, the most misleading start. Does the trend line move? Does the stamp?`, `试一试：把红点拖到 ${far.start} 年，这是最误导人的起点。趋势线会动吗？印章呢？`);
+  return t('Try it: drag the red dot left and right, and watch the trend line and the stamp.', '试一试：左右拖动红点，看看趋势线和印章怎么变。');
+}
 // The slider panel, right under the main chart.
 function tamperPanel() {
   const c = checkFor();
@@ -311,7 +324,8 @@ function tamperPanel() {
   const a = c.windows[0].start, b = c.windows[c.windows.length - 1].start;
   return `<div class="tamper" id="tamper">
     <p class="tamper-title">🕵️ ${t('Try to fake the evidence: keep only the years you want', '试着伪造证据：只留下你想要的年份')}</p>
-    <p class="hint">${t('Drag the start year. The data never changes, only which years you look at. Watch the stamp.', '拖动起始年份。数据一点没改，变的只是你看哪几年。注意看印章。')}</p>
+    <p class="tamper-task">👆 ${sliderTask(c)}</p>
+    <p class="hint">${t('The data never changes, only which years you look at.', '数据一点没改，变的只是你看哪几年。')}</p>
     <div class="slider-row"><label for="startSlider">${term('startYear', t('Start year', '起始年份'))}</label>
       <input type="range" id="startSlider" min="${a}" max="${b}" step="1" value="${state.win ?? a}"><output id="startOut" for="startSlider"></output></div>
     <div class="explore" id="exploreCard" aria-live="polite"></div>
@@ -755,9 +769,12 @@ function genericQuiz() {
 const quizKey = () => state.caseId ?? `${state.site}|${state.variable}`;
 const quizFor = () => (state.caseId && QUIZ[state.caseId] ? QUIZ[state.caseId]() : state.caseId ? null : genericQuiz());
 const FC_POS = { cairohaze: 1, delhi: 0, moscowfast: 2, sg: 0, nuukwarm: 2, manaus: 1, delhisun: 2, london: 0, moscowhaze: 1, cairo: 2, londonrain: 0, nuukgreen: 1 };
-// Right under the verdict: the final check sits far down the page, so point to it.
+// Right under the verdict, in order: the slider (just above) first, then the final check.
 function jumpToCheck() {
-  return quizFor() ? `<p><button type="button" class="btn fc-jump" data-goto="finalCheck">🖋 ${t('Last step: would you sign this claim? Jump to the final check ↓', '最后一关：这句话你敢签字吗？跳到判断题 ↓')}</button></p>` : '';
+  const c = checkFor(), slider = c && !c.skipped;
+  const fc = quizFor() ? `<button type="button" class="btn fc-jump" data-goto="finalCheck">↓ ${t('Go to the final check', '去做最后判断')}</button>` : '';
+  const sl = slider ? `<button type="button" class="btn btn-soft fc-jump" data-goto="tamper">↑ ${t('Try the start-year slider', '试试起始年份滑块')}</button>` : '';
+  return sl || fc ? `<div class="next-row">${sl}${fc}</div>` : '';
 }
 function basisLine() {
   const r = result(), v = VAR(state.variable);
