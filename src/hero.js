@@ -2,10 +2,10 @@
 // pinned with red string to the central case file. Stripes come from our own data
 // (MERRA-2 yearly air temperature, each year compared with that city's 1991-2020 average).
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t } from './i18n.js?v=20261116w';
-import { yearly } from './data.js?v=20261116w';
-import { shortSite, CASES } from './content.js?v=20261116w';
-import { landPath } from './map.js?v=20261116w';
+import { t } from './i18n.js?v=20261116x';
+import { yearly } from './data.js?v=20261116x';
+import { shortSite, CASES } from './content.js?v=20261116x';
+import { landPath } from './map.js?v=20261116x';
 
 const W = 960, H = 390, TOP = 80, K = W / 360;
 // The map's left/right seam sits in the Bering Strait (169° W), which is open sea, so no

@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116w';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116w';
-import { trendTest } from './stats.js?v=20261116w';
-import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116w';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116w';
-import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116w';
-import { loadLand, mapSvg } from './map.js?v=20261116w';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116w';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116x';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116x';
+import { trendTest } from './stats.js?v=20261116x';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116x';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116x';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116x';
+import { loadLand, mapSvg } from './map.js?v=20261116x';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116x';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
