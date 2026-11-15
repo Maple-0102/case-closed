@@ -1,14 +1,14 @@
 // Case Closed? (previously Trend Detective) page: question -> place -> variable -> guess -> replay -> answer -> clues.
 // The tool answers whether, which way, how much and how sure. It never claims a cause.
 // Written with help from Claude (Anthropic) as a coding assistant; reviewed by the author.
-import { t, setLang, getLang, STATIC } from './i18n.js?v=20261116z';
-import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261116z';
-import { trendTest } from './stats.js?v=20261116z';
-import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261116z';
-import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261116z';
-import { chartSvg, replay, startYearSvg } from './chart.js?v=20261116z';
-import { loadLand, mapSvg } from './map.js?v=20261116z';
-import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261116z';
+import { t, setLang, getLang, STATIC } from './i18n.js?v=20261117a';
+import { compare, yearly, startYearCheck, correctAcrossSites, unsureReason } from './data.js?v=20261117a';
+import { trendTest } from './stats.js?v=20261117a';
+import { VARIABLES, CHECKS, VAR } from './variables.js?v=20261117a';
+import { CASES, TOPICS, PLACE_TYPES, CLUES, DEFAULT_CLUES, GLOSSARY, siteName, shortSite } from './content.js?v=20261117a';
+import { chartSvg, replay, startYearSvg } from './chart.js?v=20261117a';
+import { loadLand, mapSvg } from './map.js?v=20261117a';
+import { caseWallSvg, animateCaseWall, watchCaseWall } from './hero.js?v=20261117a';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -889,7 +889,7 @@ function reportHtml(m) {
     ${m.checks.length ? `<section><h4>${t('3. Cross-checks', '3. 交叉核对')}</h4><ul>${li(m.checks)}</ul></section>` : ''}
     <section><h4>${m.checks.length ? t('4. Clues collected', '4. 收集到的线索') : t('3. Clues collected', '3. 收集到的线索')}</h4><ul>${li(m.clues)}</ul></section>
     ${m.verified ? `<section class="rep-verified"><h4>${t('Verified conclusion', '核对后的结论')}</h4><p>${esc(m.verified.text)}</p>
-      <p class="rep-meta">${t('Claim judged:', '判断的说法：')} ${esc(m.verified.claim)} · ${t('Your first answer:', '你的第一判断：')} ${esc(m.verified.first)} (${m.verified.ok ? t('correct', '正确') : t('corrected', '已修正')}). ${t('The conclusion above was checked against the data by Trend Detective; it is not the visitor’s own wording.', '上面的结论由趋势侦探用数据核对，不是访问者自己的措辞。')}</p></section>` : ''}
+      <p class="rep-meta">${t('Claim judged:', '判断的说法：')} ${esc(m.verified.claim)} · ${t('Your first answer:', '你的第一判断：')} ${esc(m.verified.first)} (${m.verified.ok ? t('correct', '正确') : t('corrected', '已修正')}). ${t('The conclusion above was checked against the data by Case Closed?; it is not the visitor’s own wording.', '上面的结论由「结案了吗？」用数据核对，不是访问者自己的措辞。')}</p></section>` : ''}
     ${m.note ? `<section><h4>${t('Detective’s note', '侦探笔记')}</h4><p>${esc(m.note)}</p></section>` : ''}
     <section><h4>${t('Still open', '尚未解开的疑点')}</h4><ul>${li(m.open)}</ul></section>
     <footer class="rep-foot">${t('Method: yearly values, Mann-Kendall test with lag-1 autocorrelation correction, Sen slope with 95% interval, Benjamini-Hochberg across 8 cities. Data: NASA Giovanni / POWER, NOAA GHCN-Monthly, NASA GISTEMP.', '方法：年度值；Mann-Kendall 检验（含一阶自相关修正）、Sen 斜率及 95% 区间、8 城市 Benjamini-Hochberg 校正。数据：NASA Giovanni / POWER、NOAA GHCN-Monthly、NASA GISTEMP。')}</footer>
